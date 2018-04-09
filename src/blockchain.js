@@ -7,18 +7,23 @@ const Datastore = require('nedb');
 
 class Blockchain {
     constructor() {
-        const db = {};
+        this.db = {}
+        this.latestHash = ''
+        
+        this.connectDB()
+    }
+
+    connectDB() {
+        const db = {}
         db.blockchain = new Datastore({
             filename: blockchainFilePath,
             autoload: true
-        });
+        })
         db.latestHash = new Datastore({
             filename: latestHashFilePath,
             autoload: true
-        });
-
+        })
         this.db = db
-        this.latestHash = ''
     }
 
     getIterator() {
