@@ -20,13 +20,13 @@ class Block {
         this.hash = hash.digest('hex');
     }
 
-    toString() {
-        return JSON.stringify({
+    toJSON() {
+        return {
             timestamp: this.timestamp,
             data: this.data,
             hash: this.hash,
             prevBlockHash: this.prevBlockHash
-        })
+        }
     }
 }
 

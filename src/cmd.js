@@ -16,11 +16,17 @@ function init() {
                 }
                 if(subcmd === 'list') {
                     console.log("List All Blocks")
+                    const bc = await Blockchain.get()
+                    bc.traverse()
                 }
-            }
-            if(cmd === 'block') {
-                if(subcmd === 'new') {
-                    console.log("New Block")
+                if(subcmd === 'insert') {
+                    const bc = await Blockchain.get()
+                    const block = await bc.newBlock(options.data)
+
+                    console.log("Block Created")
+                    console.log("Data: ", block.data)
+                    console.log("Hash: ", block.hash)
+                    console.log("PrevBlockHash: ", block.prevBlockHash)
                 }
             }
         });
