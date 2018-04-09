@@ -28,7 +28,7 @@ const init = () => {
 const blockchainCmd = (subcmd, opts) => {
     switch(subcmd) {
         case 'init':
-            blockchainInitCmd()
+            blockchainInitCmd(opts.to)
             return;
         case 'list':
             blockchainListCmd()
@@ -44,21 +44,26 @@ const blockchainCmd = (subcmd, opts) => {
     }
 }
 
-const blockchainInitCmd = async () => {
-    const block = await Blockchain.init()
+const blockchainInitCmd = async (to) => {
+    try {
+        const block = await Blockchain.init(to)
 
-    console.log("Genesis Block Created")
-    console.log("Transactions: ", block.transactions)
-    console.log("Hash: ", block.hash)
-    console.log("PrevBlockHash: ", block.prevBlockHash)
+        console.log("Genesis Block Created")
+        console.log("Transactions: ", block.transactions)
+        console.log("Hash: ", block.hash)
+        console.log("PrevBlockHash: ", block.prevBlockHash)
+    } catch(error) {
+        console.error(error)
+    }
 }
 
 const blockchainListCmd = async () => {
-    console.log("List All Blocks")
-
     try {
+        console.log("List All Blocks")
+    
         const bc = await Blockchain.get()
         const iterator = bc.getIterator()
+
         while (true) {
             const next = await iterator.next()
             if(next) {
@@ -71,7 +76,7 @@ const blockchainListCmd = async () => {
             }
         }
     } catch(error) {
-        console.log(error)
+        console.error(error)
     }
 }
 
@@ -86,7 +91,7 @@ const blockchainSentCmd = async (from, to, amount) => {
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
     } catch(error) {
-        console.log(error)
+        console.error(error)
     }
 }
 
@@ -95,9 +100,10 @@ const blockchainFindBalanceCmd = async (from) => {
     try {
         const bc = await Blockchain.get()
         const balance = await bc.findBalance(from)
-        console.log(balance)
+        console.log(`${from} has balance:`, balance)
+
     } catch(error) {
-        console.log(error)
+        console.error(error)
     }
 }
 

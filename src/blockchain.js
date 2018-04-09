@@ -9,19 +9,25 @@ const Datastore = require('nedb');
 
 class Blockchain {
     constructor() {
-        let db = {};
+
+        this.db = {}
+        this.latestHash = ''
+        this.tempTransactions = []
+
+        this.connectDB()
+    }
+
+    connectDB() {
+        let db = {}
         db.blockchain = new Datastore({
             filename: blockchainFilePath,
             autoload: true
-        });
+        })
         db.latestHash = new Datastore({
             filename: latestHashFilePath,
             autoload: true
-        });
-
+        })
         this.db = db
-        this.latestHash = ''
-        this.tempTransactions = []
     }
 
     getLatestHash() {
@@ -180,13 +186,13 @@ class BlockchainIterator {
     }
 }
 
-const init = async () => {
+const init = async (address) => {
     try {
         const blockchain = new Blockchain()
         const isEmpty = await blockchain.isEmpty()
         if (isEmpty) {
 
-            const block = Block.createGenesisBlock('A')
+            const block = Block.createGenesisBlock(address)
             block.setHash()
             await blockchain.insert(block.toJSON())
             await blockchain.saveLatestHash(block.hash)
