@@ -10,10 +10,13 @@ const init = () => {
         .option('-d, --data [data]', 'Block Data')
         .action((cmd, subcmd, options) => {
             
-            if(cmd === 'blockchain') {
-                blockchainCmd(subcmd, options)
+            switch(cmd) {
+                case 'blockchain':
+                    blockchainCmd(subcmd, options)
+                    return
+                default:
+                    return
             }
-
         });
 
     program.parse(process.argv)
