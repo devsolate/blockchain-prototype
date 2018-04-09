@@ -1,6 +1,8 @@
 'use strict'
 
 const Block = require('./Block')
+const Transaction = require('./transaction')
+const TrxnUtil = require('./utils/transaction')
 const blockchainFilePath = 'blockchain.db'
 const latestHashFilePath = 'latestHash.db'
 const Datastore = require('nedb');
@@ -19,9 +21,10 @@ class Blockchain {
 
         this.db = db
         this.latestHash = ''
+        this.tempTransactions = []
     }
 
-    async getLatestHash() {
+    getLatestHash() {
         return new Promise((resolve, reject) => {
             this.db.latestHash
                 .findOne({})
@@ -34,38 +37,39 @@ class Blockchain {
                 })
         })
     }
-
     getIterator() {
         return new BlockchainIterator(this, this.latestHash)
     }
+    async mine() {
+        const data = this.tempTransactions
+        const block = Block.create(data, this.latestHash)
+        block.setHash()
 
-    newBlock(data) {
-        return new Promise(async (resolve, reject) => {
-            const block = Block.create(data, this.latestHash)
-            try {
-                await this.insert(block.toJSON())
-                await this.saveLatestHash(block.hash)
-                this.latestHash = block.hash
-                resolve(block)
-            } catch(error) {
-                reject(error)
-            }
-        })
+        try {
+            await this.insert(block.toJSON())
+            await this.saveLatestHash(block.hash)
+            this.latestHash = block.hash
+            this.tempTransactions = []
+
+            return Promise.resolve(block)
+        } catch (error) {
+            return Promise.reject(error)
+        }
     }
-
     find(hash) {
         return new Promise((resolve, reject) => {
             this.db.blockchain
-            .findOne({ hash: hash }, (err, block) => {
-                if (block) {
-                    resolve(block)
-                } else {
-                    resolve(null)
-                }
-            })
+                .findOne({
+                    hash: hash
+                }, (err, block) => {
+                    if (block) {
+                        resolve(block)
+                    } else {
+                        resolve(null)
+                    }
+                })
         })
     }
-
     insert(block) {
         return new Promise((resolve, reject) => {
             this.db.blockchain.insert(block, (err, newBlock) => {
@@ -77,7 +81,6 @@ class Blockchain {
             })
         })
     }
-
     saveLatestHash(latestHash) {
         return new Promise((resolve, reject) => {
             this.db.latestHash.findOne({}, (err, hash) => {
@@ -111,7 +114,6 @@ class Blockchain {
             })
         })
     }
-
     isEmpty() {
         return new Promise((resolve, reject) => {
             this.db.blockchain.find({}, function (err, blocks) {
@@ -123,6 +125,38 @@ class Blockchain {
             })
         })
     }
+    async createTrxn(from, to, amount = '0') {
+        amount = parseInt(amount)
+        const unusedTrxns = await this.findAvailableTransactions(from, amount)
+        const sum = TrxnUtil.getBalance(unusedTrxns)
+        if(sum >= amount) {
+            const trxnInputs = TrxnUtil.getTrxnInputsFormat(unusedTrxns, from)
+            const trxnOutput = [{
+                address: from,
+                value: sum - amount
+            }, {
+                address: to,
+                value: amount
+            }]
+            const trxn = Transaction.create(trxnInputs, trxnOutput)
+            this.tempTransactions = [
+                ...this.tempTransactions,
+                trxn
+            ]
+            return Promise.resolve(trxn)
+        }
+    }
+    async findBalance(address) {
+        const iterator = this.getIterator()
+        const unusedTrxns = await TrxnUtil.findUnused(iterator, address)
+        const sum = TrxnUtil.getBalance(unusedTrxns)
+        return Promise.resolve(sum)
+    }
+    async findAvailableTransactions(address, amount) {
+        const iterator = this.getIterator()
+        const result = TrxnUtil.findUnused(iterator, address, amount)
+        return Promise.resolve(result)
+    }
 }
 
 class BlockchainIterator {
@@ -131,20 +165,18 @@ class BlockchainIterator {
         this.currentHash = currentHash
     }
 
-    next() {
-        return new Promise( async (resolve, reject) => {
-            try {
-                const nextBlock = await this.blockchain.find(this.currentHash)
-                if(nextBlock) {
-                    this.currentHash = nextBlock.prevBlockHash
-                    resolve(nextBlock)
-                } else {
-                    resolve(null)
-                }
-            } catch(error) {
-                reject(error)
+    async next() {
+        try {
+            const nextBlock = await this.blockchain.find(this.currentHash)
+            if (nextBlock) {
+                this.currentHash = nextBlock.prevBlockHash
+                return Promise.resolve(nextBlock)
+            } else {
+                return Promise.resolve(null)
             }
-        })
+        } catch (error) {
+            return Promise.reject(error)
+        }
     }
 }
 
@@ -154,33 +186,30 @@ const init = async () => {
         const isEmpty = await blockchain.isEmpty()
         if (isEmpty) {
 
-            const gBlock = Block.createGenesisBlock()
-            await blockchain.insert(gBlock.toJSON())
-            await blockchain.saveLatestHash(gBlock.hash)
+            const block = Block.createGenesisBlock('A')
+            block.setHash()
+            await blockchain.insert(block.toJSON())
+            await blockchain.saveLatestHash(block.hash)
 
-            console.log("Genesis Block Created")
-            console.log("Data: ", gBlock.data)
-            console.log("Hash: ", gBlock.hash)
-            console.log("PrevBlockHash: ", gBlock.prevBlockHash)
+            return Promise.resolve(block)
         } else {
             console.log("Blockchain is already initialized")
+            return Promise.reject()
         }
     } catch (err) {
-        console.log(err)
+        return Promise.reject(err)
     }
 }
 
-const get = () => {
-    return new Promise( async (resolve, reject) => {
-        const blockchain = new Blockchain()
-        
-        try {
-            blockchain.latestHash = await blockchain.getLatestHash()
-            resolve(blockchain)
-        } catch(error) {
-            reject(error)
-        } 
-    })
+const get = async () => {
+    const blockchain = new Blockchain()
+
+    try {
+        blockchain.latestHash = await blockchain.getLatestHash()
+        return Promise.resolve(blockchain)
+    } catch (error) {
+        return Promise.reject(error)
+    }
 }
 
 module.exports = {

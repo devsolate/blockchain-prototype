@@ -1,20 +1,21 @@
 'use strict'
 
 const moment = require('moment')
-const crypto = require('crypto');
+const crypto = require('crypto')
+const Transaction = require('./transaction')
 const genesisBlockSignature = "It's a start point of everything"
-
+const genesisBlockCoin = 1000
 
 class Block {
-    constructor(timestamp, data, hash, prevBlockHash) {
+    constructor(timestamp, transactions, hash, prevBlockHash) {
         this.timestamp = timestamp
-        this.data = data
+        this.transactions = transactions
         this.hash = hash
         this.prevBlockHash = prevBlockHash
     }
 
     setHash() {
-        const blockData = this.timestamp + this.data + this.prevBlockHash
+        const blockData = this.timestamp + JSON.stringify(this.transactions) + this.prevBlockHash
         const hash = crypto.createHash('sha256');
         hash.update(blockData);
         this.hash = hash.digest('hex');
@@ -23,24 +24,24 @@ class Block {
     toJSON() {
         return {
             timestamp: this.timestamp,
-            data: this.data,
+            transactions: this.transactions.map((item) => {
+                return item.toJSON()
+            }),
             hash: this.hash,
             prevBlockHash: this.prevBlockHash
         }
     }
 }
 
-const create = (data, prevBlockHash) => {
+const create = (transactions, prevBlockHash) => {
     const timestamp = moment().unix()
-    const block = new Block(timestamp, data, '', prevBlockHash)
-    
-    // Set Block Hash
-    block.setHash()
+    const block = new Block(timestamp, transactions, '', prevBlockHash)
     return block
 }
 
-const createGenesisBlock = () => {
-    const block = create(genesisBlockSignature, '')
+const createGenesisBlock = (targetAddress) => {
+    const trxn = Transaction.coinbase(targetAddress, genesisBlockCoin)
+    const block = create([trxn], '')
     return block
 }
 

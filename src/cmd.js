@@ -8,8 +8,11 @@ const init = () => {
         .version('0.1.0')
         .arguments('<cmd> [subcmd]')
         .option('-d, --data [data]', 'Block Data')
+        .option('-f, --from [from]', 'From Address')
+        .option('-t, --to [to]', 'Receive Address')
+        .option('-a, --amount [amount]', 'Amount')
         .action((cmd, subcmd, options) => {
-            
+
             switch(cmd) {
                 case 'blockchain':
                     blockchainCmd(subcmd, options)
@@ -30,8 +33,11 @@ const blockchainCmd = (subcmd, opts) => {
         case 'list':
             blockchainListCmd()
             return;
-        case 'insert':
-            blockchainInsertCmd(opts.data)
+        case 'sent':
+            blockchainSentCmd(opts.from, opts.to, opts.amount)
+            return;
+        case 'balance':
+            blockchainFindBalanceCmd(opts.from)
             return;
         default:
             return;
@@ -39,7 +45,12 @@ const blockchainCmd = (subcmd, opts) => {
 }
 
 const blockchainInitCmd = async () => {
-    Blockchain.init()
+    const block = await Blockchain.init()
+
+    console.log("Genesis Block Created")
+    console.log("Transactions: ", block.transactions)
+    console.log("Hash: ", block.hash)
+    console.log("PrevBlockHash: ", block.prevBlockHash)
 }
 
 const blockchainListCmd = async () => {
@@ -52,7 +63,7 @@ const blockchainListCmd = async () => {
             const next = await iterator.next()
             if(next) {
                 console.log("")
-                console.log("Data: ", next.data)
+                console.log("Transactions: ", next.transactions)
                 console.log("Hash: ", next.hash)
                 console.log("PrevBlockHash: ", next.prevBlockHash)
             } else {
@@ -64,15 +75,27 @@ const blockchainListCmd = async () => {
     }
 }
 
-const blockchainInsertCmd = async (data) => {
+const blockchainSentCmd = async (from, to, amount) => {
     try {
         const bc = await Blockchain.get()
-        const block = await bc.newBlock(data)
+        const trxn = await bc.createTrxn(from, to, amount)
+        const block = await bc.mine()
 
         console.log("Block Created")
-        console.log("Data: ", block.data)
+        console.log("Transactions: ", block.transactions)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
+    } catch(error) {
+        console.log(error)
+    }
+}
+
+
+const blockchainFindBalanceCmd = async (from) => {
+    try {
+        const bc = await Blockchain.get()
+        const balance = await bc.findBalance(from)
+        console.log(balance)
     } catch(error) {
         console.log(error)
     }
