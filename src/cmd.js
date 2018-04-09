@@ -11,6 +11,7 @@ const init = () => {
         .option('-f, --from [from]', 'From Address')
         .option('-t, --to [to]', 'Receive Address')
         .option('-a, --amount [amount]', 'Amount')
+        .option('-w, --wallet [wallet]', 'Wallet Address')
         .action((cmd, subcmd, options) => {
 
             switch(cmd) {
@@ -37,7 +38,7 @@ const blockchainCmd = (subcmd, opts) => {
             blockchainSentCmd(opts.from, opts.to, opts.amount)
             return;
         case 'balance':
-            blockchainFindBalanceCmd(opts.from)
+            blockchainFindBalanceCmd(opts.wallet)
             return;
         default:
             return;
@@ -80,27 +81,29 @@ const blockchainListCmd = async () => {
     }
 }
 
-const blockchainSentCmd = async (from, to, amount) => {
+const blockchainSentCmd = async (from, to, amount = '0') => {
     try {
+        const amountInt = parseInt(amount)
         const bc = await Blockchain.get()
-        const trxn = await bc.createTrxn(from, to, amount)
+        const trxn = await bc.createTrxn(from, to, amountInt)
         const block = await bc.mine()
 
         console.log("Block Created")
         console.log("Transactions: ", block.transactions)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
+
     } catch(error) {
         console.error(error)
     }
 }
 
 
-const blockchainFindBalanceCmd = async (from) => {
+const blockchainFindBalanceCmd = async (wallet) => {
     try {
         const bc = await Blockchain.get()
-        const balance = await bc.findBalance(from)
-        console.log(`${from} has balance:`, balance)
+        const balance = await bc.findBalance(wallet)
+        console.log(`${wallet} has balance:`, balance)
 
     } catch(error) {
         console.error(error)
