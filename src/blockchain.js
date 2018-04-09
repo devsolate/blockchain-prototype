@@ -35,19 +35,8 @@ class Blockchain {
         })
     }
 
-    async traverse() {
-        const iterator = new BlockchainIterator(this, this.latestHash)
-        while (true) {
-            const next = await iterator.next()
-            if(next) {
-                console.log("")
-                console.log("Data: ", next.data)
-                console.log("Hash: ", next.hash)
-                console.log("PrevBlockHash: ", next.prevBlockHash)
-            } else {
-                break;
-            }
-        }
+    getIterator() {
+        return new BlockchainIterator(this, this.latestHash)
     }
 
     newBlock(data) {
