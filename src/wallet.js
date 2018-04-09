@@ -75,10 +75,14 @@ const saveToPemFile = (wallet) => {
 const load = async (filePath, password) => {
     const privateKeyPem = await loadWalletFromFile(filePath)
     const privateKey = pki.decryptRsaPrivateKey(privateKeyPem, password)
-    const publicKey = rsa.setPublicKey(privateKey.n, privateKey.e)
-    const publicKeyPem = pki.publicKeyToPem(publicKey)
-    
-    return new Wallet(privateKeyPem, publicKeyPem)
+    if(privateKey) {
+        const publicKey = rsa.setPublicKey(privateKey.n, privateKey.e)
+        const publicKeyPem = pki.publicKeyToPem(publicKey)
+        
+        return new Wallet(privateKeyPem, publicKeyPem)
+    } else {
+        return Promise.reject("Password is invalid")
+    }
 }
 
 const loadWalletFromFile = (filePath) => {

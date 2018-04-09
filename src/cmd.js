@@ -14,6 +14,7 @@ const init = () => {
         .option('-a, --amount [amount]', 'Amount')
         .option('-w, --wallet [wallet]', 'Wallet Address')
         .option('-p, --password [password]', 'Password')
+        .option('-k, --key [key]', 'Private Key File')
         .action((cmd, subcmd, options) => {
 
             switch(cmd) {
@@ -54,6 +55,9 @@ const walletCmd = (subcmd, opts) => {
     switch(subcmd) {
         case 'create':
             walletCreateCmd(opts.password)
+            return;
+        case 'address':
+            walletAddressCmd(opts.key, opts.password)
             return;
         default:
             return;
@@ -133,6 +137,17 @@ const walletCreateCmd = async (password) => {
         console.log("Address:", wallet.getWalletAddress())
     } catch(error) {
         console.log(error)
+    }
+}
+
+const walletAddressCmd = async (file, password) => {
+    try {
+        const wallet = await Wallet.load(file, password)
+        
+        console.log("Private Key are loaded")
+        console.log("Address:", wallet.getWalletAddress())
+    } catch(error) {
+        console.error(error)
     }
 }
 
