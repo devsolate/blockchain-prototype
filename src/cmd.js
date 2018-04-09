@@ -39,15 +39,23 @@ const blockchainCmd = (subcmd, opts) => {
 }
 
 const blockchainInitCmd = async () => {
-    Blockchain.init()
+    try {
+        const block = await Blockchain.init()
+
+        console.log("Genesis Block Created")
+        console.log("Data: ", block.data)
+        console.log("Hash: ", block.hash)
+        console.log("PrevBlockHash: ", block.prevBlockHash)
+    } catch(error) {
+        console.error(error)
+    }
 }
 
 const blockchainListCmd = async () => {
-    console.log("List All Blocks")
-
     try {
         const bc = await Blockchain.get()
         const iterator = bc.getIterator()
+
         while (true) {
             const next = await iterator.next()
             if(next) {
@@ -60,21 +68,21 @@ const blockchainListCmd = async () => {
             }
         }
     } catch(error) {
-        console.log(error)
+        console.error(error)
     }
 }
 
 const blockchainInsertCmd = async (data) => {
     try {
         const bc = await Blockchain.get()
-        const block = await bc.newBlock(data)
+        const block = await bc.mine(data)
 
         console.log("Block Created")
         console.log("Data: ", block.data)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
     } catch(error) {
-        console.log(error)
+        console.error(error)
     }
 }
 

@@ -1,7 +1,7 @@
 'use strict'
 
 const moment = require('moment')
-const crypto = require('crypto');
+const Hash = require('./utils/hash')
 const genesisBlockSignature = "It's a start point of everything"
 
 
@@ -14,10 +14,8 @@ class Block {
     }
 
     setHash() {
-        const blockData = this.timestamp + this.data + this.prevBlockHash
-        const hash = crypto.createHash('sha256');
-        hash.update(blockData);
-        this.hash = hash.digest('hex');
+        const data = this.timestamp + this.data + this.prevBlockHash
+        this.hash = Hash.sha256(data)
     }
 
     toJSON() {
@@ -33,9 +31,6 @@ class Block {
 const create = (data, prevBlockHash) => {
     const timestamp = moment().unix()
     const block = new Block(timestamp, data, '', prevBlockHash)
-    
-    // Set Block Hash
-    block.setHash()
     return block
 }
 

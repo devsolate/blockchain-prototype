@@ -7,7 +7,7 @@ const Datastore = require('nedb');
 
 class Blockchain {
     constructor() {
-        let db = {};
+        const db = {};
         db.blockchain = new Datastore({
             filename: blockchainFilePath,
             autoload: true
@@ -21,36 +21,25 @@ class Blockchain {
         this.latestHash = ''
     }
 
-    async getLatestHash() {
-        return new Promise((resolve, reject) => {
-            this.db.latestHash
-                .findOne({})
-                .exec((err, latest) => {
-                    if (err) {
-                        return reject(err)
-                    }
-
-                    return resolve(latest.latestHash)
-                })
-        })
-    }
-
     getIterator() {
         return new BlockchainIterator(this, this.latestHash)
     }
 
-    newBlock(data) {
-        return new Promise(async (resolve, reject) => {
+    async mine(data) {
+        try {
+            // Create New Block and Set Hash
             const block = Block.create(data, this.latestHash)
-            try {
-                await this.insert(block.toJSON())
-                await this.saveLatestHash(block.hash)
-                this.latestHash = block.hash
-                resolve(block)
-            } catch(error) {
-                reject(error)
-            }
-        })
+            block.setHash()
+
+            // Save to DB
+            await this.insert(block.toJSON())
+            await this.saveLatestHash(block.hash)
+            this.latestHash = block.hash
+
+            return Promise.resolve(block)
+        } catch(error) {
+            return Promise.reject(error)
+        }
     }
 
     find(hash) {
@@ -82,7 +71,7 @@ class Blockchain {
         return new Promise((resolve, reject) => {
             this.db.latestHash.findOne({}, (err, hash) => {
                 if (err) {
-                    reject(err)
+                    return reject(err)
                 }
 
                 if (!hash) {
@@ -123,6 +112,20 @@ class Blockchain {
             })
         })
     }
+
+    async getLatestHash() {
+        return new Promise((resolve, reject) => {
+            this.db.latestHash
+                .findOne({})
+                .exec((err, latest) => {
+                    if (err) {
+                        return reject(err)
+                    }
+
+                    return resolve(latest.latestHash)
+                })
+        })
+    }
 }
 
 class BlockchainIterator {
@@ -131,20 +134,18 @@ class BlockchainIterator {
         this.currentHash = currentHash
     }
 
-    next() {
-        return new Promise( async (resolve, reject) => {
-            try {
-                const nextBlock = await this.blockchain.find(this.currentHash)
-                if(nextBlock) {
-                    this.currentHash = nextBlock.prevBlockHash
-                    resolve(nextBlock)
-                } else {
-                    resolve(null)
-                }
-            } catch(error) {
-                reject(error)
+    async next() {
+        try {
+            const nextBlock = await this.blockchain.find(this.currentHash)
+            if(nextBlock) {
+                this.currentHash = nextBlock.prevBlockHash
+                return Promise.resolve(nextBlock)
+            } else {
+                return Promise.resolve(null)
             }
-        })
+        } catch(error) {
+            return Promise.reject(error)
+        }
     }
 }
 
@@ -154,33 +155,30 @@ const init = async () => {
         const isEmpty = await blockchain.isEmpty()
         if (isEmpty) {
 
-            const gBlock = Block.createGenesisBlock()
-            await blockchain.insert(gBlock.toJSON())
-            await blockchain.saveLatestHash(gBlock.hash)
+            const block = Block.createGenesisBlock()
+            block.setHash()
 
-            console.log("Genesis Block Created")
-            console.log("Data: ", gBlock.data)
-            console.log("Hash: ", gBlock.hash)
-            console.log("PrevBlockHash: ", gBlock.prevBlockHash)
+            await blockchain.insert(block.toJSON())
+            await blockchain.saveLatestHash(block.hash)
+
+            return Promise.resolve(block)
         } else {
-            console.log("Blockchain is already initialized")
+            return Promise.reject("Blockchain is already initialized")
         }
     } catch (err) {
-        console.log(err)
+        return Promise.reject(err)
     }
 }
 
-const get = () => {
-    return new Promise( async (resolve, reject) => {
+const get = async () => {
+    try {
         const blockchain = new Blockchain()
-        
-        try {
-            blockchain.latestHash = await blockchain.getLatestHash()
-            resolve(blockchain)
-        } catch(error) {
-            reject(error)
-        } 
-    })
+        blockchain.latestHash = await blockchain.getLatestHash()
+
+        return Promise.resolve(blockchain)
+    } catch(error) {
+        return Promise.reject(error)
+    }
 }
 
 module.exports = {
