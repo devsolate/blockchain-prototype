@@ -2,6 +2,7 @@
 
 const program = require('commander')
 const Blockchain = require('./blockchain')
+const Wallet = require('./wallet')
 
 const init = () => {
     program
@@ -12,11 +13,15 @@ const init = () => {
         .option('-t, --to [to]', 'Receive Address')
         .option('-a, --amount [amount]', 'Amount')
         .option('-w, --wallet [wallet]', 'Wallet Address')
+        .option('-p, --password [password]', 'Password')
         .action((cmd, subcmd, options) => {
 
             switch(cmd) {
                 case 'blockchain':
                     blockchainCmd(subcmd, options)
+                    return
+                case 'wallet':
+                    walletCmd(subcmd, options)
                     return
                 default:
                     return
@@ -39,6 +44,16 @@ const blockchainCmd = (subcmd, opts) => {
             return;
         case 'balance':
             blockchainFindBalanceCmd(opts.wallet)
+            return;
+        default:
+            return;
+    }
+}
+
+const walletCmd = (subcmd, opts) => {
+    switch(subcmd) {
+        case 'create':
+            walletCreateCmd(opts.password)
             return;
         default:
             return;
@@ -107,6 +122,17 @@ const blockchainFindBalanceCmd = async (wallet) => {
 
     } catch(error) {
         console.error(error)
+    }
+}
+
+const walletCreateCmd = async (password) => {
+    try {
+        const wallet = await Wallet.create(password)
+        wallet.saveToFile()
+        console.log("Wallet Created")
+        console.log("Address:", wallet.getWalletAddress())
+    } catch(error) {
+        console.log(error)
     }
 }
 
