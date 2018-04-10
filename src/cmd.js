@@ -41,7 +41,7 @@ const blockchainCmd = (subcmd, opts) => {
             blockchainListCmd()
             return;
         case 'sent':
-            blockchainSentCmd(opts.from, opts.to, opts.amount)
+            blockchainSentCmd(opts.key, opts.password, opts.to, opts.amount)
             return;
         case 'balance':
             blockchainFindBalanceCmd(opts.wallet)

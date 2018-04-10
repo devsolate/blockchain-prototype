@@ -1,7 +1,10 @@
+import { loadavg } from 'os';
+
 'use strict'
 
 const Block = require('./Block')
 const Transaction = require('./transaction')
+const Wallet = require('./wallet')
 const blockchainFilePath = 'blockchain.db'
 const latestHashFilePath = 'latestHash.db'
 const Datastore = require('nedb');
@@ -132,9 +135,10 @@ class Blockchain {
         })
     }
 
-    async createTrxn(from, to, amount = 0) {
+    async createTrxn(key, password, to, amount = 0) {
         try {
-            const trxn = await Transaction.create(this, from, to, amount)
+            const wallet = await Wallet.load(key, password)
+            const trxn = await Transaction.create(this, wallet, to, amount)
             this.tempTransactions = [
                 ...this.tempTransactions,
                 trxn
