@@ -14,7 +14,7 @@ class Wallet {
         this.publicKey = publicKey
     }
 
-    getWalletAddress() {
+    get address() {
         const hashSha = Hash.sha256(this.publicKey)
         const hashed = Hash.ripemd160(hashSha)
         return Encode.base58(hashed)
@@ -27,7 +27,7 @@ class Wallet {
 
 const create = async (password) => {
     try {
-        console.log("Generating PublicKey / PrivateKey")
+        console.log("Generating PublicKey / PrivateKey.....")
 
         const keypair = await generateRsaKeypair(password)
         const wallet = new Wallet(keypair.privateKey, keypair.publicKey)
@@ -59,6 +59,8 @@ const generateRsaKeypair = (password) => {
 
 const savePrivateKeyToPemFile = (privateKey) => {
     const rand = randomstring.generate(10)
+
+    // Save in temp folder
     fs.writeFile("./temp/" + rand + ".pem", privateKey, (err) => {
         if (err) {
             return console.log(err);
@@ -67,15 +69,22 @@ const savePrivateKeyToPemFile = (privateKey) => {
 }
 
 const load = async (filePath, password) => {
-    const privateKeyPem = await loadWalletFromFile(filePath)
-    const privateKey = pki.decryptRsaPrivateKey(privateKeyPem, password)
-    if(privateKey) {
-        const publicKey = rsa.setPublicKey(privateKey.n, privateKey.e)
-        const publicKeyPem = pki.publicKeyToPem(publicKey)
+    try {
+        // Load and decrypt a private key file with password
+        const privateKeyPem = await loadWalletFromFile(filePath)
+        const privateKey = pki.decryptRsaPrivateKey(privateKeyPem, password)
         
-        return new Wallet(privateKeyPem, publicKeyPem)
-    } else {
-        return Promise.reject("Password is invalid")
+        if(privateKey) {
+            // Private Key Valid - Generate a public key from it
+            const publicKey = rsa.setPublicKey(privateKey.n, privateKey.e)
+            const publicKeyPem = pki.publicKeyToPem(publicKey)
+            
+            return new Wallet(privateKeyPem, publicKeyPem)
+        } else {
+            return Promise.reject("Password is invalid")
+        }
+    } catch(error) {
+        return Promise.reject(error)
     }
 }
 

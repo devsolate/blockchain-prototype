@@ -134,7 +134,7 @@ const walletCreateCmd = async (password) => {
         const wallet = await Wallet.create(password)
         wallet.exportPrivateKey()
         console.log("Wallet Created")
-        console.log("Address:", wallet.getWalletAddress())
+        console.log("Address:", wallet.address)
     } catch(error) {
         console.log(error)
     }
@@ -145,7 +145,7 @@ const walletAddressCmd = async (file, password) => {
         const wallet = await Wallet.load(file, password)
         
         console.log("Private Key are loaded")
-        console.log("Address:", wallet.getWalletAddress())
+        console.log("Address:", wallet.address)
     } catch(error) {
         console.error(error)
     }
