@@ -48,9 +48,12 @@ const generateRsaKeypair = (password) => {
                 return reject(err)
             }
 
+            const publicKey = pki.publicKeyToPem(keypair.publicKey)
+            const encryptedPrivateKey = pki.encryptRsaPrivateKey(keypair.privateKey, password)
+
             return resolve({
-                publicKey: pki.publicKeyToPem(keypair.publicKey),
-                privateKey: pki.encryptRsaPrivateKey(keypair.privateKey, password)
+                publicKey: publicKey,
+                privateKey: encryptedPrivateKey
             })
         })
     })
