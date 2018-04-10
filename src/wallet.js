@@ -20,8 +20,9 @@ class Wallet {
         return Encode.base58(hashed)
     }
 
-    exportPrivateKey() {
-        savePrivateKeyToPemFile(this.privateKey)
+    exportPrivateKey(password) {
+        const encryptedPrivateKey = pki.encryptRsaPrivateKey(this.privateKey, password)
+        savePrivateKeyToPemFile(encryptedPrivateKey)
     }
 }
 
@@ -38,7 +39,7 @@ const create = async (password) => {
     }
 }
 
-const generateRsaKeypair = (password) => {
+const generateRsaKeypair = () => {
     return new Promise((resolve, reject) => {
         rsa.generateKeyPair({
             bits: 2048,
@@ -49,11 +50,11 @@ const generateRsaKeypair = (password) => {
             }
 
             const publicKey = pki.publicKeyToPem(keypair.publicKey)
-            const encryptedPrivateKey = pki.encryptRsaPrivateKey(keypair.privateKey, password)
+            const privateKey = keypair.privateKey
 
             return resolve({
                 publicKey: publicKey,
-                privateKey: encryptedPrivateKey
+                privateKey: privateKey
             })
         })
     })
@@ -82,7 +83,7 @@ const load = async (filePath, password) => {
             const publicKey = rsa.setPublicKey(privateKey.n, privateKey.e)
             const publicKeyPem = pki.publicKeyToPem(publicKey)
             
-            return new Wallet(privateKeyPem, publicKeyPem)
+            return new Wallet(privateKey, publicKeyPem)
         } else {
             return Promise.reject("Password is invalid")
         }

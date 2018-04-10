@@ -131,8 +131,9 @@ const blockchainFindBalanceCmd = async (wallet) => {
 
 const walletCreateCmd = async (password) => {
     try {
-        const wallet = await Wallet.create(password)
-        wallet.exportPrivateKey()
+        const wallet = await Wallet.create()
+        wallet.exportPrivateKey(password)
+
         console.log("Wallet Created")
         console.log("Address:", wallet.address)
     } catch(error) {
@@ -144,7 +145,7 @@ const walletAddressCmd = async (file, password) => {
     try {
         const wallet = await Wallet.load(file, password)
         
-        console.log("Private Key are loaded")
+        console.log("Wallet is loaded")
         console.log("Address:", wallet.address)
     } catch(error) {
         console.error(error)
