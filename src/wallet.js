@@ -20,6 +20,13 @@ class Wallet {
         return Encode.base58(hashed)
     }
 
+    sign(data) {
+        const md = forge.md.sha1.create()
+        md.update(data, 'utf8')
+        const signature = this.privateKey.sign(md)
+        return signature
+    }
+
     exportPrivateKey(password) {
         const encryptedPrivateKey = pki.encryptRsaPrivateKey(this.privateKey, password)
         savePrivateKeyToPemFile(encryptedPrivateKey)

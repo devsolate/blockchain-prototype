@@ -3,6 +3,8 @@
 const program = require('commander')
 const Blockchain = require('./blockchain')
 const Wallet = require('./wallet')
+const Hash = require('./utils/hash')
+const Verify = require('./utils/verify')
 
 const init = () => {
     program
@@ -58,6 +60,9 @@ const walletCmd = (subcmd, opts) => {
             return;
         case 'address':
             walletAddressCmd(opts.key, opts.password)
+            return;
+        case 'sign':
+            walletSignCmd(opts.key, opts.password)
             return;
         default:
             return;
@@ -147,6 +152,23 @@ const walletAddressCmd = async (file, password) => {
         
         console.log("Wallet is loaded")
         console.log("Address:", wallet.address)
+    } catch(error) {
+        console.error(error)
+    }
+}
+
+
+const walletSignCmd = async (file, password) => {
+    try {
+        const wallet = await Wallet.load(file, password)
+        const signed = wallet.sign('airichan')
+
+        console.log("Private Key")
+        console.log("Signature:", signed)
+
+        const verified = Verify.sign(wallet.publicKey, 'airichan', signed)
+        console.log("verify", verified)
+
     } catch(error) {
         console.error(error)
     }
