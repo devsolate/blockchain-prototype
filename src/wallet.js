@@ -20,8 +20,8 @@ class Wallet {
         return Encode.base58(hashed)
     }
 
-    saveToFile() {
-        saveToPemFile(this)
+    exportPrivateKey() {
+        savePrivateKeyToPemFile(this.privateKey)
     }
 }
 
@@ -57,15 +57,9 @@ const generateRsaKeypair = (password) => {
 }
 
 
-const saveToPemFile = (wallet) => {
+const savePrivateKeyToPemFile = (privateKey) => {
     const rand = randomstring.generate(10)
-    fs.writeFile("./temp/" + rand + ".pem", wallet.privateKey, (err) => {
-        if (err) {
-            return console.log(err);
-        }
-    })
-
-    fs.writeFile("./temp/" + rand + ".pub", wallet.publicKey, (err) => {
+    fs.writeFile("./temp/" + rand + ".pem", privateKey, (err) => {
         if (err) {
             return console.log(err);
         }
