@@ -1,6 +1,6 @@
 'use strict'
 
-const crypto = require('crypto')
+const Hash = require('./utils/hash')
 const coinbaseSignature = 'My first coin initialized'
 
 class Transaction {
@@ -36,9 +36,7 @@ class Transaction {
             vin: this.vin,
             vout: this.vout
         })
-        const hash = crypto.createHash('sha256');
-        hash.update(trxnData);
-        this.id = hash.digest('hex');
+        this.id = Hash.sha256(trxnData)
     }
 
     toJSON() {
