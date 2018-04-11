@@ -152,6 +152,7 @@ const walletAddressCmd = async (file, password) => {
         
         console.log("Wallet is loaded")
         console.log("Address:", wallet.address)
+        console.log("Length:", wallet.address.length)
     } catch(error) {
         console.error(error)
     }

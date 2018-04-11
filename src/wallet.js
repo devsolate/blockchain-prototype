@@ -7,6 +7,7 @@ const Encode = require('./utils/encode')
 const fs = require('fs')
 const pki = forge.pki
 const rsa = pki.rsa
+const addressVersion = '00'
 
 class Wallet {
     constructor(privateKey, publicKey) {
@@ -15,9 +16,11 @@ class Wallet {
     }
 
     get address() {
-        const hashSha = Hash.sha256(this.publicKey)
-        const hashed = Hash.ripemd160(hashSha)
-        return Encode.base58(hashed)
+        const hashPubKey = Hash.sha256(this.publicKey)
+        const hashed = Hash.ripemd160(hashPubKey)
+        const checksum = getChecksum(hashed)
+        const address = addressVersion + hashed + checksum
+        return Encode.base58(address)
     }
 
     sign(data) {
@@ -107,6 +110,11 @@ const loadWalletFromFile = (filePath) => {
             resolve(fileData)
         })
     })
+}
+
+const getChecksum = (data) => {
+    const hashed = Hash.sha256(Hash.sha256(data))
+    return hashed.substr(0, 8)
 }
 
 module.exports = {
