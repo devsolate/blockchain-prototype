@@ -3,6 +3,8 @@
 const program = require('commander')
 const Blockchain = require('./blockchain')
 const Wallet = require('./wallet')
+const Hash = require('./utils/hash')
+const Verify = require('./utils/verify')
 
 const init = () => {
     program
@@ -58,6 +60,12 @@ const walletCmd = (subcmd, opts) => {
             return;
         case 'address':
             walletAddressCmd(opts.key, opts.password)
+            return;
+        case 'sign':
+            walletSignCmd(opts.key, opts.password)
+            return;
+        case 'verify':
+            walletVerifyAddressCmd(opts.from)
             return;
         default:
             return;
@@ -131,10 +139,11 @@ const blockchainFindBalanceCmd = async (wallet) => {
 
 const walletCreateCmd = async (password) => {
     try {
-        const wallet = await Wallet.create(password)
-        wallet.saveToFile()
+        const wallet = await Wallet.create()
+        wallet.exportPrivateKey(password)
+
         console.log("Wallet Created")
-        console.log("Address:", wallet.getWalletAddress())
+        console.log("Address:", wallet.address)
     } catch(error) {
         console.log(error)
     }
@@ -144,8 +153,36 @@ const walletAddressCmd = async (file, password) => {
     try {
         const wallet = await Wallet.load(file, password)
         
-        console.log("Private Key are loaded")
-        console.log("Address:", wallet.getWalletAddress())
+        console.log("Wallet is loaded")
+        console.log("Address:", wallet.address)
+        console.log(wallet.publicKey)
+    } catch(error) {
+        console.error(error)
+    }
+}
+
+
+const walletVerifyAddressCmd = async (address) => {
+    try {
+        const verified = Verify.address(address)
+        console.log("Address Verify :", verified)
+
+    } catch(error) {
+        console.error(error)
+    }
+}
+
+const walletSignCmd = async (file, password) => {
+    try {
+        const wallet = await Wallet.load(file, password)
+        const signed = wallet.sign('airichan')
+
+        console.log("Private Key")
+        console.log("Signature:", signed)
+
+        const verified = Verify.sign(wallet.publicKey, 'airichan', signed)
+        console.log("verify", verified)
+
     } catch(error) {
         console.error(error)
     }

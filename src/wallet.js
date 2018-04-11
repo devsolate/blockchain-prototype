@@ -7,6 +7,7 @@ const Encode = require('./utils/encode')
 const fs = require('fs')
 const pki = forge.pki
 const rsa = pki.rsa
+const addressVersion = '00'
 
 class Wallet {
     constructor(privateKey, publicKey) {
@@ -14,20 +15,30 @@ class Wallet {
         this.publicKey = publicKey
     }
 
-    getWalletAddress() {
-        const hashSha = Hash.sha256(this.publicKey)
-        const hashed = Hash.ripemd160(hashSha)
-        return Encode.base58(hashed)
+    get address() {
+        const hashPubKey = Hash.sha256(this.publicKey)
+        const hashed = Hash.ripemd160(hashPubKey)
+        const checksum = getChecksum(hashed)
+        const address = addressVersion + hashed + checksum
+        return Encode.base58(address)
     }
 
-    saveToFile() {
-        saveToPemFile(this)
+    sign(data) {
+        const md = forge.md.sha1.create()
+        md.update(data, 'utf8')
+        const signature = this.privateKey.sign(md)
+        return signature
+    }
+
+    exportPrivateKey(password) {
+        const encryptedPrivateKey = pki.encryptRsaPrivateKey(this.privateKey, password)
+        savePrivateKeyToPemFile(encryptedPrivateKey)
     }
 }
 
 const create = async (password) => {
     try {
-        console.log("Generating PublicKey / PrivateKey")
+        console.log("Generating PublicKey / PrivateKey.....")
 
         const keypair = await generateRsaKeypair(password)
         const wallet = new Wallet(keypair.privateKey, keypair.publicKey)
@@ -38,7 +49,7 @@ const create = async (password) => {
     }
 }
 
-const generateRsaKeypair = (password) => {
+const generateRsaKeypair = () => {
     return new Promise((resolve, reject) => {
         rsa.generateKeyPair({
             bits: 2048,
@@ -48,24 +59,23 @@ const generateRsaKeypair = (password) => {
                 return reject(err)
             }
 
+            const publicKey = pki.publicKeyToPem(keypair.publicKey)
+            const privateKey = keypair.privateKey
+
             return resolve({
-                publicKey: pki.publicKeyToPem(keypair.publicKey),
-                privateKey: pki.encryptRsaPrivateKey(keypair.privateKey, password)
+                publicKey: publicKey,
+                privateKey: privateKey
             })
         })
     })
 }
 
 
-const saveToPemFile = (wallet) => {
+const savePrivateKeyToPemFile = (privateKey) => {
     const rand = randomstring.generate(10)
-    fs.writeFile("./temp/" + rand + ".pem", wallet.privateKey, (err) => {
-        if (err) {
-            return console.log(err);
-        }
-    })
 
-    fs.writeFile("./temp/" + rand + ".pub", wallet.publicKey, (err) => {
+    // Save in temp folder
+    fs.writeFile("./temp/" + rand + ".pem", privateKey, (err) => {
         if (err) {
             return console.log(err);
         }
@@ -73,15 +83,22 @@ const saveToPemFile = (wallet) => {
 }
 
 const load = async (filePath, password) => {
-    const privateKeyPem = await loadWalletFromFile(filePath)
-    const privateKey = pki.decryptRsaPrivateKey(privateKeyPem, password)
-    if(privateKey) {
-        const publicKey = rsa.setPublicKey(privateKey.n, privateKey.e)
-        const publicKeyPem = pki.publicKeyToPem(publicKey)
+    try {
+        // Load and decrypt a private key file with password
+        const privateKeyPem = await loadWalletFromFile(filePath)
+        const privateKey = pki.decryptRsaPrivateKey(privateKeyPem, password)
         
-        return new Wallet(privateKeyPem, publicKeyPem)
-    } else {
-        return Promise.reject("Password is invalid")
+        if(privateKey) {
+            // Private Key Valid - Generate a public key from it
+            const publicKey = rsa.setPublicKey(privateKey.n, privateKey.e)
+            const publicKeyPem = pki.publicKeyToPem(publicKey)
+            
+            return new Wallet(privateKey, publicKeyPem)
+        } else {
+            return Promise.reject("Password is invalid")
+        }
+    } catch(error) {
+        return Promise.reject(error)
     }
 }
 
@@ -93,6 +110,11 @@ const loadWalletFromFile = (filePath) => {
             resolve(fileData)
         })
     })
+}
+
+const getChecksum = (data) => {
+    const hashed = Hash.sha256(Hash.sha256(data))
+    return hashed.substr(0, 8)
 }
 
 module.exports = {
