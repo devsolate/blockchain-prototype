@@ -64,6 +64,9 @@ const walletCmd = (subcmd, opts) => {
         case 'sign':
             walletSignCmd(opts.key, opts.password)
             return;
+        case 'verify':
+            walletVerifyAddressCmd(opts.from)
+            return;
         default:
             return;
     }
@@ -152,12 +155,22 @@ const walletAddressCmd = async (file, password) => {
         
         console.log("Wallet is loaded")
         console.log("Address:", wallet.address)
-        console.log("Length:", wallet.address.length)
+        console.log(wallet.publicKey)
     } catch(error) {
         console.error(error)
     }
 }
 
+
+const walletVerifyAddressCmd = async (address) => {
+    try {
+        const verified = Verify.address(address)
+        console.log("Address Verify :", verified)
+
+    } catch(error) {
+        console.error(error)
+    }
+}
 
 const walletSignCmd = async (file, password) => {
     try {
