@@ -1,5 +1,3 @@
-import { loadavg } from 'os';
-
 'use strict'
 
 const Block = require('./Block')
