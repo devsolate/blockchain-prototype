@@ -36,6 +36,14 @@ class Wallet {
     }
 }
 
+const getAddress = (pubKey) => {
+    const hashPubKey = Hash.sha256(pubKey)
+    const hashed = Hash.ripemd160(hashPubKey)
+    const checksum = getChecksum(hashed)
+    const address = addressVersion + hashed + checksum
+    return Encode.base58(address)
+}
+
 const create = async (password) => {
     try {
         console.log("Generating PublicKey / PrivateKey.....")
@@ -119,5 +127,6 @@ const getChecksum = (data) => {
 
 module.exports = {
     create,
-    load
+    load,
+    getAddress
 }

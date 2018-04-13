@@ -181,7 +181,7 @@ const init = async (address) => {
         if (isEmpty) {
 
             // Create Genesis Block and Target Address an Initial Coin
-            const block = Block.createGenesisBlock(address)
+            const block = await Block.createGenesisBlock(address)
             block.setHash()
 
             // Save to DB

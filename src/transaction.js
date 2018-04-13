@@ -1,6 +1,8 @@
 'use strict'
 
 const Hash = require('./utils/hash')
+const Verify = require('./utils/verify')
+const Wallet = require('./wallet')
 const coinbaseSignature = 'My first coin initialized'
 
 class Transaction {
@@ -47,6 +49,28 @@ class Transaction {
             vout: this.vout
         }
     }
+
+    verify() {
+        if(isCoinbaseTrxn(this)) {
+            return true
+        }
+
+        let isVerify = true
+        for(let i = 0; i < this.vin.length; i++) {
+            const vin = this.vin[i]
+            const verify = Verify.sign(vin.scriptPubKey, vin.id, vin.signature)
+            if(!verify) {
+                isVerify = false
+                break;
+            }
+        }
+
+        return isVerify
+    }
+}
+
+const isCoinbaseTrxn = (trxn) => {
+    return trxn.vin.length == 1 && trxn.vin[0].signature == coinbaseSignature
 }
 
 const create =  async (blockchain, wallet, to, amount) => {
@@ -60,7 +84,8 @@ const create =  async (blockchain, wallet, to, amount) => {
             
             for(let key in unused.trxns) {
                 const unusedTx = unused.trxns[key]
-                trxn.addVin(key, unusedTx.idx, from, wallet.publicKey)
+                const signature = wallet.sign(key)
+                trxn.addVin(key, unusedTx.idx, signature, wallet.publicKey)
             }
 
             trxn.addVout(from, sum - amount)    // Sender
@@ -95,17 +120,21 @@ const filterUnusedTransactions = (iterator, address, amount = -1) => {
             if (next) {
                 next.transactions.map((trxn) => {
 
-                    // Mask Vin Trxn as Used Trxns
-                    trxn.vin.map((vinTrxn) => {
 
-                        // Only Target Address Filter
-                        if(address == vinTrxn.signature) {
-                            usedTrxns[vinTrxn.id] = {
-                                id: vinTrxn.id,
-                                voutIdx: vinTrxn.vout
+                    if(!isCoinbaseTrxn(trxn)) {
+
+                        // Mask Vin Trxn as Used Trxns
+                        trxn.vin.map((vinTrxn) => {
+
+                            // Only Target Address Filter
+                            if(address == Wallet.getAddress(vinTrxn.scriptPubKey)) {
+                                usedTrxns[vinTrxn.id] = {
+                                    id: vinTrxn.id,
+                                    voutIdx: vinTrxn.vout
+                                }
                             }
-                        }
-                    })
+                        })
+                    }
 
                     trxn.vout.map((vout, voutIdx) => {
                         if(!usedTrxns[trxn.id]) {

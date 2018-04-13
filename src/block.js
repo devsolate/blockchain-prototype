@@ -31,10 +31,17 @@ class Block {
     }
 }
 
-const create = (transactions, prevBlockHash) => {
+const create = async (transactions, prevBlockHash) => {
     const timestamp = moment().unix()
-    const block = new Block(timestamp, transactions, '', prevBlockHash)
-    return block
+    const verifiedTrxns = transactions.filter((item) => {
+        return item.verify()
+    }) 
+    if(verifiedTrxns && verifiedTrxns.length > 0) {
+        const block = new Block(timestamp, verifiedTrxns, '', prevBlockHash)
+        return Promise.resolve(block)
+    } else {
+        return Promise.reject("No verify trxn")
+    }
 }
 
 const createGenesisBlock = (targetAddress) => {
