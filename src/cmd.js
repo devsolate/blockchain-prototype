@@ -121,6 +121,7 @@ const blockchainSentCmd = async (key, password, to, amount = '0') => {
             console.log("Transactions: ", block.transactions)
             console.log("Hash: ", block.hash)
             console.log("PrevBlockHash: ", block.prevBlockHash)
+            console.log("Nonce: ", block.nonce)
         } else {
             console.log("Wallet address is invalid")
         }

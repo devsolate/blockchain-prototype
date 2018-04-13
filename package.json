@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "base-x": "^3.0.4",
+    "big-integer": "^1.6.28",
     "commander": "^2.15.1",
     "moment": "^2.22.0",
     "nedb": "^1.8.0",

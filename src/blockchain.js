@@ -3,6 +3,7 @@
 const Block = require('./Block')
 const Transaction = require('./transaction')
 const Wallet = require('./wallet')
+const ProofOfWork = require('./pow')
 const blockchainFilePath = 'blockchain.db'
 const latestHashFilePath = 'latestHash.db'
 const Datastore = require('nedb');
@@ -49,7 +50,11 @@ class Blockchain {
     async mine() {
         const data = this.tempTransactions
         const block = await Block.create(data, this.latestHash)
-        block.setHash()
+        const pow = ProofOfWork.create(block)
+        const mine = await pow.run()
+
+        block.hash = mine.hash
+        block.nonce = mine.nonce
 
         try {
             await this.saveBlock(block.toJSON())
@@ -182,7 +187,11 @@ const init = async (address) => {
 
             // Create Genesis Block and Target Address an Initial Coin
             const block = await Block.createGenesisBlock(address)
-            block.setHash()
+            const pow = ProofOfWork.create(block)
+            const mine = await pow.run()
+
+            block.hash = mine.hash
+            block.nonce = mine.nonce
 
             // Save to DB
             await blockchain.saveBlock(block.toJSON())

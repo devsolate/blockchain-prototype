@@ -7,16 +7,12 @@ const genesisBlockSignature = "It's a start point of everything"
 const genesisBlockCoin = 1000
 
 class Block {
-    constructor(timestamp, transactions, hash, prevBlockHash) {
+    constructor(timestamp, transactions, hash, prevBlockHash, nonce) {
         this.timestamp = timestamp
         this.transactions = transactions
         this.hash = hash
         this.prevBlockHash = prevBlockHash
-    }
-
-    setHash() {
-        const data = this.timestamp + JSON.stringify(this.transactions) + this.prevBlockHash
-        this.hash = Hash.sha256(data)
+        this.nonce = nonce
     }
 
     toJSON() {
@@ -26,7 +22,8 @@ class Block {
                 return item.toJSON()
             }),
             hash: this.hash,
-            prevBlockHash: this.prevBlockHash
+            prevBlockHash: this.prevBlockHash,
+            nonce: this.nonce
         }
     }
 }
