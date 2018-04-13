@@ -10,13 +10,14 @@ class Transaction {
         this.vout = vout
     }
 
-    addVin(trxnId, voutIdx, signature) {
+    addVin(trxnId, voutIdx, signature, pubKey) {
         this.vin = [
             ...this.vin,
             {
                 id: trxnId,
                 vout: voutIdx,
-                signature: signature
+                signature: signature,
+                scriptPubKey: pubKey
             }
         ]
     }
@@ -48,8 +49,9 @@ class Transaction {
     }
 }
 
-const create =  async (blockchain, from, to, amount) => {
+const create =  async (blockchain, wallet, to, amount) => {
     try {
+        const from = wallet.address
         const unused = await findUnusedTransactions(blockchain, from, amount)
         const sum = unused.sum
 
@@ -58,7 +60,7 @@ const create =  async (blockchain, from, to, amount) => {
             
             for(let key in unused.trxns) {
                 const unusedTx = unused.trxns[key]
-                trxn.addVin(key, unusedTx.idx, from)
+                trxn.addVin(key, unusedTx.idx, from, wallet.publicKey)
             }
 
             trxn.addVout(from, sum - amount)    // Sender

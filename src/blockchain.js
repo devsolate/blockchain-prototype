@@ -48,7 +48,7 @@ class Blockchain {
 
     async mine() {
         const data = this.tempTransactions
-        const block = Block.create(data, this.latestHash)
+        const block = await Block.create(data, this.latestHash)
         block.setHash()
 
         try {
@@ -133,15 +133,14 @@ class Blockchain {
         })
     }
 
-    async createTrxn(key, password, to, amount = 0) {
+    async createTrxn(wallet, to, amount = 0) {
         try {
-            const wallet = await Wallet.load(key, password)
             const trxn = await Transaction.create(this, wallet, to, amount)
             this.tempTransactions = [
                 ...this.tempTransactions,
                 trxn
             ]
-            return Promise.resolve(trxn)
+            return Promise.resolve(this.tempTransactions)
         } catch(error) {
             return Promise.reject(error)
         }

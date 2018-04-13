@@ -113,8 +113,8 @@ const blockchainSentCmd = async (key, password, to, amount = '0') => {
         const amountInt = parseInt(amount)
         if(Verify.address(to)) {
             const bc = await Blockchain.get()
-            const wallet = await Wallet.load(file, password)
-            const trxn = await bc.createTrxn(wallet.address, to, amountInt)
+            const wallet = await Wallet.load(key, password)
+            const trxn = await bc.createTrxn(wallet, to, amountInt)
             const block = await bc.mine()
 
             console.log("Block Created")
