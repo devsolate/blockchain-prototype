@@ -1,41 +1,35 @@
 'use strict'
 
-const program = require('commander')
+const vorpal = require('vorpal')()
 const Blockchain = require('./blockchain')
 
-const init = () => {
-    program
-        .version('0.1.0')
-        .arguments('<cmd> [subcmd]')
-        .option('-d, --data [data]', 'Block Data')
-        .action((cmd, subcmd, options) => {
-            
-            switch(cmd) {
-                case 'blockchain':
-                    blockchainCmd(subcmd, options)
-                    return
-                default:
-                    return
-            }
+const Command = () => {
+    vorpal
+        .command('init', 'Initialize blockchain')
+        .action(async (args, callback) => {
+            await blockchainInitCmd()
+            callback()
+        });
+    
+    vorpal
+        .command('list', 'List all block in blockchain db')
+        .action(async (args, callback) => {
+            await blockchainListCmd()
+            callback()
+        });
+    
+    vorpal
+        .command('insert', 'Insert data to blockchain')
+        .option('-d, --data <data>', 'Data')
+        .action(async (args, callback) => {
+            const data = args.options.data
+            await blockchainInsertCmd(data)
+            callback()
         });
 
-    program.parse(process.argv)
-}
-
-const blockchainCmd = (subcmd, opts) => {
-    switch(subcmd) {
-        case 'init':
-            blockchainInitCmd()
-            return;
-        case 'list':
-            blockchainListCmd()
-            return;
-        case 'insert':
-            blockchainInsertCmd(opts.data)
-            return;
-        default:
-            return;
-    }
+    vorpal
+        .delimiter('blockchain$')
+        .show()
 }
 
 const blockchainInitCmd = async () => {
@@ -46,8 +40,11 @@ const blockchainInitCmd = async () => {
         console.log("Data: ", block.data)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
+
+        return Promise.resolve()
     } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -67,8 +64,10 @@ const blockchainListCmd = async () => {
                 break;
             }
         }
+        return Promise.resolve()
     } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -81,11 +80,12 @@ const blockchainInsertCmd = async (data) => {
         console.log("Data: ", block.data)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
+
+        return Promise.resolve()
     } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
-module.exports = {
-    init
-}
+module.exports = Command
