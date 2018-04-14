@@ -35,6 +35,14 @@ const Command = () => {
             await blockchainSentCmd(key, password, to, amount)
             callback()
         })
+    
+
+    vorpal
+        .command('mine', 'Mine a new block')
+        .action(async (args, callback) => {
+            await blockchainMineBlockCmd()
+            callback()
+        })
 
     vorpal
         .command('balance', 'Find balance of wallet address in blockchain')
@@ -80,44 +88,6 @@ const Command = () => {
         .show()
 }
 
-const blockchainCmd = (subcmd, opts) => {
-    switch (subcmd) {
-        case 'init':
-            blockchainInitCmd(opts.to)
-            return;
-        case 'list':
-            blockchainListCmd()
-            return;
-        case 'sent':
-            blockchainSentCmd(opts.key, opts.password, opts.to, opts.amount)
-            return;
-        case 'balance':
-            blockchainFindBalanceCmd(opts.wallet)
-            return;
-        default:
-            return;
-    }
-}
-
-const walletCmd = (subcmd, opts) => {
-    switch (subcmd) {
-        case 'create':
-            walletCreateCmd(opts.password)
-            return;
-        case 'address':
-            walletAddressCmd(opts.key, opts.password)
-            return;
-        case 'sign':
-            walletSignCmd(opts.key, opts.password)
-            return;
-        case 'verify':
-            walletVerifyAddressCmd(opts.from)
-            return;
-        default:
-            return;
-    }
-}
-
 const blockchainInitCmd = async (to) => {
     try {
         const block = await Blockchain.init(to)
@@ -126,8 +96,11 @@ const blockchainInitCmd = async (to) => {
         console.log("Transactions: ", block.transactions)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
+
+        return Promise.resolve()
     } catch (error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -149,8 +122,32 @@ const blockchainListCmd = async () => {
                 break;
             }
         }
+        
+        return Promise.resolve()
     } catch (error) {
         console.error(error)
+        return Promise.reject(error)
+    }
+}
+
+
+
+const blockchainMineBlockCmd = async () => {
+    try {
+        console.log("Mining Block")
+
+        const bc = await Blockchain.get()
+        const block = await bc.mine()
+
+        console.log("Block Created")
+        console.log("Transactions: ", block.transactions)
+        console.log("Hash: ", block.hash)
+        console.log("PrevBlockHash: ", block.prevBlockHash)
+        
+        return Promise.resolve()
+    } catch (error) {
+        console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -161,18 +158,16 @@ const blockchainSentCmd = async (key, password, to, amount = '0') => {
             const bc = await Blockchain.get()
             const wallet = await Wallet.load(key, password)
             const trxn = await bc.createTrxn(wallet, to, amountInt)
-            const block = await bc.mine()
 
-            console.log("Block Created")
-            console.log("Transactions: ", block.transactions)
-            console.log("Hash: ", block.hash)
-            console.log("PrevBlockHash: ", block.prevBlockHash)
+            console.log("Transactions Created")
         } else {
             console.log("Wallet address is invalid")
         }
 
+        return Promise.resolve()
     } catch (error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -187,8 +182,10 @@ const blockchainFindBalanceCmd = async (wallet) => {
             console.log("Wallet address is invalid")
         }
 
+        return Promise.resolve()
     } catch (error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -199,8 +196,11 @@ const walletCreateCmd = async (password) => {
 
         console.log("Wallet Created")
         console.log("Address:", wallet.address)
+
+        return Promise.resolve()
     } catch (error) {
-        console.log(error)
+        console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -210,8 +210,11 @@ const walletAddressCmd = async (file, password) => {
 
         console.log("Wallet is loaded")
         console.log("Address:", wallet.address)
+
+        return Promise.resolve()
     } catch (error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -221,8 +224,10 @@ const walletVerifyAddressCmd = async (address) => {
         const verified = Verify.address(address)
         console.log("Address Verify :", verified)
 
+        return Promise.resolve()
     } catch (error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
