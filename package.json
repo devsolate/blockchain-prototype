@@ -9,8 +9,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "commander": "^2.15.1",
+    "inquirer": "^5.2.0",
     "moment": "^2.22.0",
-    "nedb": "^1.8.0"
+    "nedb": "^1.8.0",
+    "vorpal": "^1.12.0"
   }
 }

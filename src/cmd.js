@@ -1,48 +1,49 @@
 'use strict'
 
-const program = require('commander')
+const vorpal = require('vorpal')()
 const Blockchain = require('./blockchain')
 
-const init = () => {
-    program
-        .version('0.1.0')
-        .arguments('<cmd> [subcmd]')
-        .option('-d, --data [data]', 'Block Data')
-        .option('-f, --from [from]', 'From Address')
-        .option('-t, --to [to]', 'Receive Address')
-        .option('-a, --amount [amount]', 'Amount')
-        .option('-w, --wallet [wallet]', 'Wallet Address')
-        .action((cmd, subcmd, options) => {
+const Command = () => {
 
-            switch(cmd) {
-                case 'blockchain':
-                    blockchainCmd(subcmd, options)
-                    return
-                default:
-                    return
-            }
-        });
+    vorpal
+        .command('init', 'Initialize blockchain')
+        .option('-a, --address <address>', 'Wallet Address')
+        .action(async (args, callback) => {
+            const { address } = args.options
+            await blockchainInitCmd(address)
+            callback()
+        })
+    
+    vorpal
+        .command('list', 'List all block in blockchain db')
+        .action(async (args, callback) => {
+            await blockchainListCmd()
+            callback()
+        })
+    
+    vorpal
+        .command('sent', 'Insert data to blockchain')
+        .option('-f, --from <from>', 'From Address')
+        .option('-t, --to <to>', 'To Address')
+        .option('-a, --amount <amount>', 'Amount')
+        .action(async (args, callback) => {
+            const { from, to, amount } = args.options
+            await blockchainSentCmd(from, to, amount)
+            callback()
+        })
 
-    program.parse(process.argv)
-}
+    vorpal
+        .command('balance', 'Find balance of wallet address in blockchain')
+        .option('-a, --address <address>', 'Wallet Address')
+        .action(async (args, callback) => {
+            const { address } = args.options
+            await blockchainFindBalanceCmd(address)
+            callback()
+        })
 
-const blockchainCmd = (subcmd, opts) => {
-    switch(subcmd) {
-        case 'init':
-            blockchainInitCmd(opts.to)
-            return;
-        case 'list':
-            blockchainListCmd()
-            return;
-        case 'sent':
-            blockchainSentCmd(opts.from, opts.to, opts.amount)
-            return;
-        case 'balance':
-            blockchainFindBalanceCmd(opts.wallet)
-            return;
-        default:
-            return;
-    }
+    vorpal
+        .delimiter('blockchain$')
+        .show()
 }
 
 const blockchainInitCmd = async (to) => {
@@ -53,8 +54,11 @@ const blockchainInitCmd = async (to) => {
         console.log("Transactions: ", block.transactions)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
+
+        return Promise.resolve()
     } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -76,8 +80,10 @@ const blockchainListCmd = async () => {
                 break;
             }
         }
+        return Promise.resolve()
     } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -93,8 +99,10 @@ const blockchainSentCmd = async (from, to, amount = '0') => {
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
 
+        return Promise.resolve()
     } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
@@ -105,11 +113,11 @@ const blockchainFindBalanceCmd = async (wallet) => {
         const balance = await bc.findBalance(wallet)
         console.log(`${wallet} has balance:`, balance)
 
+        return Promise.resolve()
     } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
-module.exports = {
-    init
-}
+module.exports = Command
