@@ -10,11 +10,11 @@
   "license": "ISC",
   "dependencies": {
     "base-x": "^3.0.4",
-    "commander": "^2.15.1",
     "moment": "^2.22.0",
     "nedb": "^1.8.0",
     "node-forge": "^0.7.5",
     "randomstring": "^1.1.5",
-    "ripemd160": "^2.0.1"
+    "ripemd160": "^2.0.1",
+    "vorpal": "^1.12.0"
   }
 }
