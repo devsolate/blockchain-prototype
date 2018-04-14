@@ -1,4 +1,3 @@
 'use strict'
 
-const Cmd = require('./src/cmd')
-Cmd.init()
+const Command = require('./src/cmd')()

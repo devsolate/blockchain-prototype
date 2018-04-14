@@ -6,6 +6,7 @@ const Wallet = require('./wallet')
 const ProofOfWork = require('./pow')
 const blockchainFilePath = 'blockchain.db'
 const latestHashFilePath = 'latestHash.db'
+const transactionsFilePath = 'transaction.db'
 const Datastore = require('nedb');
 
 class Blockchain {
@@ -28,6 +29,10 @@ class Blockchain {
             filename: latestHashFilePath,
             autoload: true
         })
+        db.transactions = new Datastore({
+            filename: transactionsFilePath,
+            autoload: true
+        })
         this.db = db
     }
 
@@ -48,8 +53,11 @@ class Blockchain {
     }
 
     async mine() {
-        const data = this.tempTransactions
-        const block = await Block.create(data, this.latestHash)
+        const trxns = await this.getTransactions()
+        const transactions = trxns.map((item) => {
+            return new Transaction.instance(item.id, item.vin, item.vout)
+        })
+        const block = await Block.create(transactions, this.latestHash)
         const pow = ProofOfWork.create(block)
         const mine = await pow.run()
 
@@ -60,7 +68,7 @@ class Blockchain {
             await this.saveBlock(block.toJSON())
             await this.saveLatestHash(block.hash)
             this.latestHash = block.hash
-            this.tempTransactions = []
+            await this.clearTransactions()
 
             return Promise.resolve(block)
         } catch (error) {
@@ -141,14 +149,47 @@ class Blockchain {
     async createTrxn(wallet, to, amount = 0) {
         try {
             const trxn = await Transaction.create(this, wallet, to, amount)
-            this.tempTransactions = [
-                ...this.tempTransactions,
-                trxn
-            ]
-            return Promise.resolve(this.tempTransactions)
+            await this.saveTransaction(trxn)
+            return Promise.resolve(trxn)
         } catch(error) {
             return Promise.reject(error)
         }
+    }
+
+    async saveTransaction(trxn) {
+        return new Promise((resolve, reject) => {
+            this.db.transactions.insert(trxn, (err, newBlock) => {
+                if (!err) {
+                    resolve()
+                } else {
+                    reject(err)
+                }
+            })
+        })
+    }
+
+    async getTransactions() {
+        return new Promise((resolve, reject) => {
+            this.db.transactions.find({}, (err, transactions) => {
+                if(err) {
+                    return reject(err)
+                }
+
+                return resolve(transactions)
+            })
+        })
+    }
+
+    async clearTransactions() {
+        return new Promise((resolve, reject) => {
+            this.db.transactions.remove({}, { multi: true }, (err, transactions) => {
+                if(err) {
+                    return reject(err)
+                }
+
+                return resolve(transactions)
+            })
+        })
     }
 
     async findBalance(address) {
