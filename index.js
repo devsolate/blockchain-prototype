@@ -1,4 +1,5 @@
 'use strict'
 
-const Cmd = require('./src/cmd')
-Cmd.init()
+const P2PNode = require('./src/node')
+
+P2PNode.start()
