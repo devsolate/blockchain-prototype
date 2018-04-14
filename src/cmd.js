@@ -7,37 +7,32 @@ const Hash = require('./utils/hash')
 const Verify = require('./utils/verify')
 
 const Command = () => {
-
+    // Blockchain
     vorpal
         .command('init', 'Initialize blockchain')
         .option('-a, --address <address>', 'Wallet Address')
         .action(async (args, callback) => {
-            const {
-                address
-            } = args.options
+            const { address } = args.options
             await blockchainInitCmd(address)
             callback()
         })
-
+    
     vorpal
         .command('list', 'List all block in blockchain db')
         .action(async (args, callback) => {
             await blockchainListCmd()
             callback()
         })
-
+    
     vorpal
-        .command('sent', 'Insert data to blockchain')
-        .option('-f, --from <from>', 'From Address')
+        .command('sent', 'Sent coin to other address')
+        .option('-k, --key <key>', 'Private Key Path')
+        .option('-p, --password <password>', 'Private Key Password')
         .option('-t, --to <to>', 'To Address')
         .option('-a, --amount <amount>', 'Amount')
         .action(async (args, callback) => {
-            const {
-                from,
-                to,
-                amount
-            } = args.options
-            await blockchainSentCmd(from, to, amount)
+            const { key, password, to, amount } = args.options
+            await blockchainSentCmd(key, password, to, amount)
             callback()
         })
 
@@ -45,13 +40,41 @@ const Command = () => {
         .command('balance', 'Find balance of wallet address in blockchain')
         .option('-a, --address <address>', 'Wallet Address')
         .action(async (args, callback) => {
-            const {
-                address
-            } = args.options
+            const { address } = args.options
             await blockchainFindBalanceCmd(address)
             callback()
         })
 
+    // Wallet Command
+    vorpal
+        .command('wallet create', 'Create wallet with private key')
+        .option('-p, --password <password>', 'Private Key Password')
+        .action(async (args, callback) => {
+            const { password } = args.options
+            await walletCreateCmd(password)
+            callback()
+        })
+    
+
+    vorpal
+        .command('wallet address', 'Get wallet address from private key')
+        .option('-k, --key <key>', 'Private Key Path')
+        .option('-p, --password <password>', 'Private Key Password')
+        .action(async (args, callback) => {
+            const { key, password } = args.options
+            await walletAddressCmd(key, password)
+            callback()
+        })
+
+    vorpal
+        .command('wallet verify', 'Verify wallet address')
+        .option('-a, --address <address>', 'Wallet address')
+        .action(async (args, callback) => {
+            const { address } = args.options
+            await walletVerifyAddressCmd(address)
+            callback()
+        })
+    
     vorpal
         .delimiter('blockchain$')
         .show()
