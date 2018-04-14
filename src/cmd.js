@@ -1,41 +1,87 @@
 'use strict'
 
-const program = require('commander')
+const vorpal = require('vorpal')()
 const Blockchain = require('./blockchain')
 const Wallet = require('./wallet')
 const Hash = require('./utils/hash')
 const Verify = require('./utils/verify')
 
-const init = () => {
-    program
-        .version('0.1.0')
-        .arguments('<cmd> [subcmd]')
-        .option('-d, --data [data]', 'Block Data')
-        .option('-f, --from [from]', 'From Address')
-        .option('-t, --to [to]', 'Receive Address')
-        .option('-a, --amount [amount]', 'Amount')
-        .option('-w, --wallet [wallet]', 'Wallet Address')
-        .option('-p, --password [password]', 'Password')
-        .option('-k, --key [key]', 'Private Key File')
-        .action((cmd, subcmd, options) => {
+const Command = () => {
+    // Blockchain
+    vorpal
+        .command('init', 'Initialize blockchain')
+        .option('-a, --address <address>', 'Wallet Address')
+        .action(async (args, callback) => {
+            const { address } = args.options
+            await blockchainInitCmd(address)
+            callback()
+        })
+    
+    vorpal
+        .command('list', 'List all block in blockchain db')
+        .action(async (args, callback) => {
+            await blockchainListCmd()
+            callback()
+        })
+    
+    vorpal
+        .command('sent', 'Sent coin to other address')
+        .option('-k, --key <key>', 'Private Key Path')
+        .option('-p, --password <password>', 'Private Key Password')
+        .option('-t, --to <to>', 'To Address')
+        .option('-a, --amount <amount>', 'Amount')
+        .action(async (args, callback) => {
+            const { key, password, to, amount } = args.options
+            await blockchainSentCmd(key, password, to, amount)
+            callback()
+        })
 
-            switch(cmd) {
-                case 'blockchain':
-                    blockchainCmd(subcmd, options)
-                    return
-                case 'wallet':
-                    walletCmd(subcmd, options)
-                    return
-                default:
-                    return
-            }
-        });
+    vorpal
+        .command('balance', 'Find balance of wallet address in blockchain')
+        .option('-a, --address <address>', 'Wallet Address')
+        .action(async (args, callback) => {
+            const { address } = args.options
+            await blockchainFindBalanceCmd(address)
+            callback()
+        })
 
-    program.parse(process.argv)
+    // Wallet Command
+    vorpal
+        .command('wallet create', 'Create wallet with private key')
+        .option('-p, --password <password>', 'Private Key Password')
+        .action(async (args, callback) => {
+            const { password } = args.options
+            await walletCreateCmd(password)
+            callback()
+        })
+    
+
+    vorpal
+        .command('wallet address', 'Get wallet address from private key')
+        .option('-k, --key <key>', 'Private Key Path')
+        .option('-p, --password <password>', 'Private Key Password')
+        .action(async (args, callback) => {
+            const { key, password } = args.options
+            await walletAddressCmd(key, password)
+            callback()
+        })
+
+    vorpal
+        .command('wallet verify', 'Verify wallet address')
+        .option('-a, --address <address>', 'Wallet address')
+        .action(async (args, callback) => {
+            const { address } = args.options
+            await walletVerifyAddressCmd(address)
+            callback()
+        })
+    
+    vorpal
+        .delimiter('blockchain$')
+        .show()
 }
 
 const blockchainCmd = (subcmd, opts) => {
-    switch(subcmd) {
+    switch (subcmd) {
         case 'init':
             blockchainInitCmd(opts.to)
             return;
@@ -54,7 +100,7 @@ const blockchainCmd = (subcmd, opts) => {
 }
 
 const walletCmd = (subcmd, opts) => {
-    switch(subcmd) {
+    switch (subcmd) {
         case 'create':
             walletCreateCmd(opts.password)
             return;
@@ -80,7 +126,7 @@ const blockchainInitCmd = async (to) => {
         console.log("Transactions: ", block.transactions)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
-    } catch(error) {
+    } catch (error) {
         console.error(error)
     }
 }
@@ -88,13 +134,13 @@ const blockchainInitCmd = async (to) => {
 const blockchainListCmd = async () => {
     try {
         console.log("List All Blocks")
-    
+
         const bc = await Blockchain.get()
         const iterator = bc.getIterator()
 
         while (true) {
             const next = await iterator.next()
-            if(next) {
+            if (next) {
                 console.log("")
                 console.log("Transactions: ", next.transactions)
                 console.log("Hash: ", next.hash)
@@ -103,7 +149,7 @@ const blockchainListCmd = async () => {
                 break;
             }
         }
-    } catch(error) {
+    } catch (error) {
         console.error(error)
     }
 }
@@ -111,7 +157,7 @@ const blockchainListCmd = async () => {
 const blockchainSentCmd = async (key, password, to, amount = '0') => {
     try {
         const amountInt = parseInt(amount)
-        if(Verify.address(to)) {
+        if (Verify.address(to)) {
             const bc = await Blockchain.get()
             const wallet = await Wallet.load(key, password)
             const trxn = await bc.createTrxn(wallet, to, amountInt)
@@ -121,12 +167,11 @@ const blockchainSentCmd = async (key, password, to, amount = '0') => {
             console.log("Transactions: ", block.transactions)
             console.log("Hash: ", block.hash)
             console.log("PrevBlockHash: ", block.prevBlockHash)
-            console.log("Nonce: ", block.nonce)
         } else {
             console.log("Wallet address is invalid")
         }
 
-    } catch(error) {
+    } catch (error) {
         console.error(error)
     }
 }
@@ -135,14 +180,14 @@ const blockchainSentCmd = async (key, password, to, amount = '0') => {
 const blockchainFindBalanceCmd = async (wallet) => {
     try {
         const bc = await Blockchain.get()
-        if(Verify.address(wallet)) {
+        if (Verify.address(wallet)) {
             const balance = await bc.findBalance(wallet)
             console.log(`${wallet} has balance:`, balance)
         } else {
             console.log("Wallet address is invalid")
         }
 
-    } catch(error) {
+    } catch (error) {
         console.error(error)
     }
 }
@@ -154,7 +199,7 @@ const walletCreateCmd = async (password) => {
 
         console.log("Wallet Created")
         console.log("Address:", wallet.address)
-    } catch(error) {
+    } catch (error) {
         console.log(error)
     }
 }
@@ -162,10 +207,10 @@ const walletCreateCmd = async (password) => {
 const walletAddressCmd = async (file, password) => {
     try {
         const wallet = await Wallet.load(file, password)
-        
+
         console.log("Wallet is loaded")
         console.log("Address:", wallet.address)
-    } catch(error) {
+    } catch (error) {
         console.error(error)
     }
 }
@@ -176,27 +221,9 @@ const walletVerifyAddressCmd = async (address) => {
         const verified = Verify.address(address)
         console.log("Address Verify :", verified)
 
-    } catch(error) {
+    } catch (error) {
         console.error(error)
     }
 }
 
-const walletSignCmd = async (file, password) => {
-    try {
-        const wallet = await Wallet.load(file, password)
-        const signed = wallet.sign('airichan')
-
-        console.log("Private Key")
-        console.log("Signature:", signed)
-
-        const verified = Verify.sign(wallet.publicKey, 'airichan', signed)
-        console.log("verify", verified)
-
-    } catch(error) {
-        console.error(error)
-    }
-}
-
-module.exports = {
-    init
-}
+module.exports = Command
