@@ -4,9 +4,9 @@ const Block = require('./Block')
 const Transaction = require('./transaction')
 const Wallet = require('./wallet')
 const ProofOfWork = require('./pow')
-const blockchainFilePath = 'blockchain.db'
-const latestHashFilePath = 'latestHash.db'
-const transactionsFilePath = 'transaction.db'
+const blockchainFilePath = './blockchain.db'
+const latestHashFilePath = './latestHash.db'
+const transactionsFilePath = './transaction.db'
 const Datastore = require('nedb');
 
 class Blockchain {
@@ -43,7 +43,11 @@ class Blockchain {
                     return reject(err)
                 }
 
-                return resolve(latest.latestHash)
+                if(latest) {
+                    return resolve(latest.latestHash)
+                } else {
+                    return resolve("")
+                }
             })
         })
     }
@@ -88,13 +92,37 @@ class Blockchain {
         })
     }
 
+
+    findNext(prevBlockHash) {
+        return new Promise((resolve, reject) => {
+            this.db.blockchain.findOne({ prevBlockHash: prevBlockHash }, (err, block) => {
+                if (block) {
+                    return resolve(block)
+                } else {
+                    return resolve(null)
+                }
+            })
+        })
+    }
+
     saveBlock(block) {
         return new Promise((resolve, reject) => {
-            this.db.blockchain.insert(block, (err, newBlock) => {
-                if (!err) {
-                    resolve()
+            this.db.blockchain.findOne({ hash: block.hash }, (err, currentBlock) => {
+                
+                if(err) {
+                    return reject(err)
+                }
+
+                if (!currentBlock) {
+                    this.db.blockchain.insert(block, (err, newBlock) => {
+                        if (!err) {
+                            resolve()
+                        } else {
+                            reject(err)
+                        }
+                    })
                 } else {
-                    reject(err)
+                    return resolve()
                 }
             })
         })
@@ -250,10 +278,10 @@ const init = async (address) => {
 const get = async () => {
     try {
         const blockchain = new Blockchain()
-        const isEmpty = await blockchain.isEmpty()
-        if (isEmpty) {
-            return Promise.reject("Blockchain is not initialized")
-        }
+        // const isEmpty = await blockchain.isEmpty()
+        // if (isEmpty) {
+        //     return Promise.reject("Blockchain is not initialized")
+        // }
         // Get blockchain latest hash from DB
         blockchain.latestHash = await blockchain.getLatestHash()
         return Promise.resolve(blockchain)

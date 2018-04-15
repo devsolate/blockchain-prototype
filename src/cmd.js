@@ -6,7 +6,7 @@ const Wallet = require('./wallet')
 const Hash = require('./utils/hash')
 const Verify = require('./utils/verify')
 
-const Command = () => {
+const Command = (p2pNode) => {
     // Blockchain
     vorpal
         .command('init', 'Initialize blockchain')
@@ -86,6 +86,8 @@ const Command = () => {
     vorpal
         .delimiter('blockchain$')
         .show()
+
+    return vorpal
 }
 
 const blockchainInitCmd = async (to) => {
@@ -130,8 +132,6 @@ const blockchainListCmd = async () => {
     }
 }
 
-
-
 const blockchainMineBlockCmd = async () => {
     try {
         console.log("Mining Block")
@@ -143,6 +143,18 @@ const blockchainMineBlockCmd = async () => {
         console.log("Transactions: ", block.transactions)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
+        
+        return Promise.resolve()
+    } catch (error) {
+        console.error(error)
+        return Promise.reject(error)
+    }
+}
+
+
+const blockchainSyncCmd = async () => {
+    try {
+        console.log("Sync Blockchain")
         
         return Promise.resolve()
     } catch (error) {
