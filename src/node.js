@@ -12,8 +12,10 @@ const pull = require('pull-stream')
 const channel = {
     SYNC_REQUEST: 'SYNC_REQUEST',
     SYNC_BLOCK: 'SYNC_BLOCK',
-    CREATED_TRANSACTION: 'CREATE TRANSACTION',
-    CREATED_BLOCK: 'MINED A NEW BLOCK'
+    SYNC_TRXN_REQUEST: 'SYNC_TRXN_REQUEST',
+    SYNC_TRXN: 'SYNC_TRXN',
+    CREATED_TRANSACTION: 'CREATED_TRANSACTION',
+    CREATED_BLOCK: 'CREATED_BLOCK'
 }
 
 const start = async () => {
@@ -57,8 +59,47 @@ const start = async () => {
         }
     })
 
-    node.subscribe(channel.CREATED_TRANSACTION, (transaction) => {
+    node.subscribe(channel.SYNC_TRXN_REQUEST, async (buffer) => {
+        const data = JSON.parse(buffer.data.toString())
+        const currentNodeId = node.node.peerInfo.id.toB58String()
+        
+        // Request Sync from Other Node
+        if(data.nodeId != currentNodeId) {
+            const transactions = await bc.getTransactions()
 
+            if(transactions.length > 0) {
+                node.publish(channel.SYNC_TRXN, JSON.stringify({
+                    nodeId: data.nodeId,
+                    transactions: transactions
+                }))
+            }
+        }
+    })
+
+    node.subscribe(channel.SYNC_TRXN, async (buffer) => {
+        const data = JSON.parse(buffer.data.toString())
+        const currentNodeId = node.node.peerInfo.id.toB58String()
+
+        if(data.nodeId == currentNodeId) {
+            data.transactions.map(async (item) => {
+                try {
+                    await bc.saveTransaction(item)
+                } catch(error) {
+
+                }
+            })
+        }
+    })
+
+    node.subscribe(channel.CREATED_TRANSACTION, async (buffer) => {
+        const data = JSON.parse(buffer.data.toString())
+        
+        try {
+            await bc.saveTransaction(data)
+            console.log("Received broadcast transaction")
+        } catch(error) {
+
+        }
     })
 
     node.subscribe(channel.CREATED_BLOCK, (block) => {
@@ -81,8 +122,29 @@ const sync = async(node, bc) => {
         nodeId: nodeId,
         latestHash: latestHash,
     }))
+
+    node.publish(channel.SYNC_TRXN_REQUEST, JSON.stringify({
+        nodeId: nodeId
+    }))
 }
 
+
+const publishBlock = (block) => {
+
+}
+
+const publishTransaction = (trxn) => {
+    const nodeId = node.node.peerInfo.id.toB58String()
+
+    node.publish(channel.CREATED_BLOCK, JSON.stringify({
+        nodeId: nodeId,
+        transaction: trxn
+    }))
+}
+
+
 module.exports = {
-    start
+    start,
+    publishBlock,
+    publishTransaction
 }

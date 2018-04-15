@@ -7,7 +7,8 @@ const ProofOfWork = require('./pow')
 const blockchainFilePath = './blockchain.db'
 const latestHashFilePath = './latestHash.db'
 const transactionsFilePath = './transaction.db'
-const Datastore = require('nedb');
+const Datastore = require('nedb')
+const P2PNode = require('./node')
 
 class Blockchain {
     constructor() {
@@ -178,6 +179,7 @@ class Blockchain {
         try {
             const trxn = await Transaction.create(this, wallet, to, amount)
             await this.saveTransaction(trxn)
+            P2PNode.publishTransaction(trxn)
             return Promise.resolve(trxn)
         } catch(error) {
             return Promise.reject(error)
@@ -278,11 +280,6 @@ const init = async (address) => {
 const get = async () => {
     try {
         const blockchain = new Blockchain()
-        // const isEmpty = await blockchain.isEmpty()
-        // if (isEmpty) {
-        //     return Promise.reject("Blockchain is not initialized")
-        // }
-        // Get blockchain latest hash from DB
         blockchain.latestHash = await blockchain.getLatestHash()
         return Promise.resolve(blockchain)
     } catch (error) {

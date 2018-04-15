@@ -32,7 +32,7 @@ const Command = (p2pNode) => {
         .option('-a, --amount <amount>', 'Amount')
         .action(async (args, callback) => {
             const { key, password, to, amount } = args.options
-            await blockchainSentCmd(key, password, to, amount)
+            await blockchainSentCmd(key, password, to, amount, p2pNode)
             callback()
         })
     
@@ -163,13 +163,15 @@ const blockchainSyncCmd = async () => {
     }
 }
 
-const blockchainSentCmd = async (key, password, to, amount = '0') => {
+const blockchainSentCmd = async (key, password, to, amount = '0', p2pNode) => {
     try {
         const amountInt = parseInt(amount)
         if (Verify.address(to)) {
             const bc = await Blockchain.get()
             const wallet = await Wallet.load(key, password)
             const trxn = await bc.createTrxn(wallet, to, amountInt)
+
+            p2pNode.publish('CREATED_TRANSACTION', JSON.stringify(trxn))
 
             console.log("Transactions Created")
         } else {
