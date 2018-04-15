@@ -15,7 +15,6 @@ class Blockchain {
 
         this.db = {}
         this.latestHash = ''
-        this.tempTransactions = []
 
         this.connectDB()
     }
