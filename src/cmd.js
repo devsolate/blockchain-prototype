@@ -6,21 +6,21 @@ const Wallet = require('./wallet')
 const Hash = require('./utils/hash')
 const Verify = require('./utils/verify')
 
-const Command = (p2pNode) => {
+const Command = (bc, p2pNode) => {
     // Blockchain
     vorpal
         .command('init', 'Initialize blockchain')
         .option('-a, --address <address>', 'Wallet Address')
         .action(async (args, callback) => {
             const { address } = args.options
-            await blockchainInitCmd(address)
+            await blockchainInitCmd(bc, address)
             callback()
         })
     
     vorpal
         .command('list', 'List all block in blockchain db')
         .action(async (args, callback) => {
-            await blockchainListCmd()
+            await blockchainListCmd(bc)
             callback()
         })
     
@@ -32,7 +32,7 @@ const Command = (p2pNode) => {
         .option('-a, --amount <amount>', 'Amount')
         .action(async (args, callback) => {
             const { key, password, to, amount } = args.options
-            await blockchainSentCmd(key, password, to, amount, p2pNode)
+            await blockchainSentCmd(bc, key, password, to, amount, p2pNode)
             callback()
         })
     
@@ -40,7 +40,9 @@ const Command = (p2pNode) => {
     vorpal
         .command('mine', 'Mine a new block')
         .action(async (args, callback) => {
-            await blockchainMineBlockCmd()
+            const block = await blockchainMineBlockCmd(bc)
+
+            p2pNode.publish('CREATED_BLOCK', JSON.stringify(block))
             callback()
         })
 
@@ -49,7 +51,7 @@ const Command = (p2pNode) => {
         .option('-a, --address <address>', 'Wallet Address')
         .action(async (args, callback) => {
             const { address } = args.options
-            await blockchainFindBalanceCmd(address)
+            await blockchainFindBalanceCmd(bc, address)
             callback()
         })
 
@@ -59,7 +61,7 @@ const Command = (p2pNode) => {
         .option('-p, --password <password>', 'Private Key Password')
         .action(async (args, callback) => {
             const { password } = args.options
-            await walletCreateCmd(password)
+            await walletCreateCmd(bc, password)
             callback()
         })
     
@@ -70,7 +72,7 @@ const Command = (p2pNode) => {
         .option('-p, --password <password>', 'Private Key Password')
         .action(async (args, callback) => {
             const { key, password } = args.options
-            await walletAddressCmd(key, password)
+            await walletAddressCmd(bc, key, password)
             callback()
         })
 
@@ -79,7 +81,7 @@ const Command = (p2pNode) => {
         .option('-a, --address <address>', 'Wallet address')
         .action(async (args, callback) => {
             const { address } = args.options
-            await walletVerifyAddressCmd(address)
+            await walletVerifyAddressCmd(bc, address)
             callback()
         })
     
@@ -106,11 +108,10 @@ const blockchainInitCmd = async (to) => {
     }
 }
 
-const blockchainListCmd = async () => {
+const blockchainListCmd = async (bc) => {
     try {
         console.log("List All Blocks")
 
-        const bc = await Blockchain.get()
         const iterator = bc.getIterator()
 
         while (true) {
@@ -132,11 +133,9 @@ const blockchainListCmd = async () => {
     }
 }
 
-const blockchainMineBlockCmd = async () => {
+const blockchainMineBlockCmd = async (bc, p2pNode) => {
     try {
         console.log("Mining Block")
-
-        const bc = await Blockchain.get()
         const block = await bc.mine()
 
         console.log("Block Created")
@@ -144,30 +143,17 @@ const blockchainMineBlockCmd = async () => {
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
         
-        return Promise.resolve()
+        return Promise.resolve(block)
     } catch (error) {
         console.error(error)
         return Promise.reject(error)
     }
 }
 
-
-const blockchainSyncCmd = async () => {
-    try {
-        console.log("Sync Blockchain")
-        
-        return Promise.resolve()
-    } catch (error) {
-        console.error(error)
-        return Promise.reject(error)
-    }
-}
-
-const blockchainSentCmd = async (key, password, to, amount = '0', p2pNode) => {
+const blockchainSentCmd = async (bc, key, password, to, amount = '0', p2pNode) => {
     try {
         const amountInt = parseInt(amount)
         if (Verify.address(to)) {
-            const bc = await Blockchain.get()
             const wallet = await Wallet.load(key, password)
             const trxn = await bc.createTrxn(wallet, to, amountInt)
 
@@ -186,9 +172,8 @@ const blockchainSentCmd = async (key, password, to, amount = '0', p2pNode) => {
 }
 
 
-const blockchainFindBalanceCmd = async (wallet) => {
+const blockchainFindBalanceCmd = async (bc, wallet) => {
     try {
-        const bc = await Blockchain.get()
         if (Verify.address(wallet)) {
             const balance = await bc.findBalance(wallet)
             console.log(`${wallet} has balance:`, balance)
@@ -203,7 +188,7 @@ const blockchainFindBalanceCmd = async (wallet) => {
     }
 }
 
-const walletCreateCmd = async (password) => {
+const walletCreateCmd = async (bc, password) => {
     try {
         const wallet = await Wallet.create()
         wallet.exportPrivateKey(password)
@@ -218,7 +203,7 @@ const walletCreateCmd = async (password) => {
     }
 }
 
-const walletAddressCmd = async (file, password) => {
+const walletAddressCmd = async (bc, file, password) => {
     try {
         const wallet = await Wallet.load(file, password)
 
@@ -233,7 +218,7 @@ const walletAddressCmd = async (file, password) => {
 }
 
 
-const walletVerifyAddressCmd = async (address) => {
+const walletVerifyAddressCmd = async (bc, address) => {
     try {
         const verified = Verify.address(address)
         console.log("Address Verify :", verified)

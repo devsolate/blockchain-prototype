@@ -3,7 +3,7 @@
 
 const bigInt = require('big-integer')
 const Hash = require('./utils/hash')
-const complex = 18
+const complex = 12
 
 class ProofOfWork {
     constructor(block) {

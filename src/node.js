@@ -23,7 +23,7 @@ const start = async () => {
     const node = new P2PNode(host)
     await node.start()
     
-    const cmd = Command(node)
+    const cmd = Command(bc, node)
 
     // Subscribe data from other node
     node.subscribe(channel.SYNC_REQUEST, async (buffer) => {
@@ -33,11 +33,12 @@ const start = async () => {
         // Request Sync from Other Node
         if(data.nodeId != currentNodeId) {
             const block = await bc.findNext(data.latestHash)
+            console.log(`Request block ${data.latestHash}`, block)
 
             if(block) {
                 node.publish(channel.SYNC_BLOCK, JSON.stringify({
                     nodeId: data.nodeId,
-                    block: block.toJSON()
+                    block: block
                 }))
             }
         }
@@ -49,6 +50,7 @@ const start = async () => {
         if(data.nodeId == currentNodeId) {
             await bc.saveBlock(data.block)
             await bc.saveLatestHash(data.block.hash)
+            await bc.clearSuccessTransactions(data.block.transactions)
 
             setTimeout(() => {
                 node.publish(channel.SYNC_REQUEST, JSON.stringify({
@@ -102,19 +104,22 @@ const start = async () => {
         }
     })
 
-    node.subscribe(channel.CREATED_BLOCK, (block) => {
+    node.subscribe(channel.CREATED_BLOCK, (buffer) => {
+        const data = JSON.parse(buffer.data.toString())
         
+        syncBlockchain(node, bc)
     })
 
     // Call sync when connect other peer
     node.node.on('peer:connect', (peer) => {
         setTimeout(() => {
-            sync(node, bc)
+            syncBlockchain(node, bc)
+            syncTransaction(node, bc)
         }, 2000)
     })
 }
 
-const sync = async(node, bc) => {
+const syncBlockchain = async(node, bc) => {
     const latestHash = await bc.getLatestHash()
     const nodeId = node.node.peerInfo.id.toB58String()
 
@@ -122,29 +127,15 @@ const sync = async(node, bc) => {
         nodeId: nodeId,
         latestHash: latestHash,
     }))
+}
 
+const syncTransaction = async(node, bc) => {
+    const nodeId = node.node.peerInfo.id.toB58String()
     node.publish(channel.SYNC_TRXN_REQUEST, JSON.stringify({
         nodeId: nodeId
     }))
 }
 
-
-const publishBlock = (block) => {
-
-}
-
-const publishTransaction = (trxn) => {
-    const nodeId = node.node.peerInfo.id.toB58String()
-
-    node.publish(channel.CREATED_BLOCK, JSON.stringify({
-        nodeId: nodeId,
-        transaction: trxn
-    }))
-}
-
-
 module.exports = {
-    start,
-    publishBlock,
-    publishTransaction
+    start
 }

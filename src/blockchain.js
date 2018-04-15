@@ -178,7 +178,6 @@ class Blockchain {
         try {
             const trxn = await Transaction.create(this, wallet, to, amount)
             await this.saveTransaction(trxn)
-            P2PNode.publishTransaction(trxn)
             return Promise.resolve(trxn)
         } catch(error) {
             return Promise.reject(error)
@@ -219,6 +218,21 @@ class Blockchain {
                 return resolve(transactions)
             })
         })
+    }
+
+    async clearSuccessTransactions(transactions) {
+        const removed = transactions.map((item) => {
+            return new Promise((resolve, reject) => {
+                this.db.transactions.remove({ id: item.id }, { multi: true }, (err, numRemoved) => {
+                    if(err) {
+                        return reject(err)
+                    }
+    
+                    return resolve()
+                })
+            })
+        })
+        return Promise.all(removed)
     }
 
     async findBalance(address) {
