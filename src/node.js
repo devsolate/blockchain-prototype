@@ -3,11 +3,9 @@
 const {
     P2PNode
 } = require('p2p-connect')
-const host = 'http://localhost:9000'
 
 const Blockchain = require('./blockchain')
 const Command = require('./cmd')
-const pull = require('pull-stream')
 
 const channel = {
     SYNC_REQUEST: 'SYNC_REQUEST',
@@ -20,7 +18,7 @@ const channel = {
 
 const start = async () => {
     const bc = await Blockchain.get()
-    const node = new P2PNode(host)
+    const node = new P2PNode()
     await node.start()
     
     const cmd = Command(bc, node)
