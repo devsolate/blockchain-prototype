@@ -49,7 +49,7 @@ const create = async () => {
     try {
         console.log("Generating PublicKey / PrivateKey.....")
 
-        const keypair = await generateRsaKeypair(password)
+        const keypair = await generateRsaKeypair()
         const wallet = new Wallet(keypair.privateKey, keypair.publicKey)
         
         return Promise.resolve(wallet)
