@@ -52,6 +52,7 @@ const start = async () => {
         if(data.nodeId == currentNodeId) {
             await bc.saveBlock(data.block)
             await bc.saveLatestHash(data.block.hash)
+            bc.latestHash = data.block.hash
             await bc.clearSuccessTransactions(data.block.transactions)
 
             setTimeout(() => {
