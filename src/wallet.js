@@ -30,8 +30,9 @@ class Wallet {
         return signature
     }
 
-    exportPrivateKey(password) {
-        const encryptedPrivateKey = pki.encryptRsaPrivateKey(this.privateKey, password)
+    exportPrivateKey(password = '') {
+        const passwordStr = password + ''
+        const encryptedPrivateKey = pki.encryptRsaPrivateKey(this.privateKey, passwordStr)
         savePrivateKeyToPemFile(encryptedPrivateKey)
     }
 }
@@ -44,7 +45,7 @@ const getAddress = (pubKey) => {
     return Encode.base58(address)
 }
 
-const create = async (password) => {
+const create = async () => {
     try {
         console.log("Generating PublicKey / PrivateKey.....")
 
@@ -90,11 +91,12 @@ const savePrivateKeyToPemFile = (privateKey) => {
     })
 }
 
-const load = async (filePath, password) => {
+const load = async (filePath, password = '') => {
     try {
         // Load and decrypt a private key file with password
+        const passwordStr = password + ''
         const privateKeyPem = await loadWalletFromFile(filePath)
-        const privateKey = pki.decryptRsaPrivateKey(privateKeyPem, password)
+        const privateKey = pki.decryptRsaPrivateKey(privateKeyPem, passwordStr)
         
         if(privateKey) {
             // Private Key Valid - Generate a public key from it
