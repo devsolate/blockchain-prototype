@@ -30,17 +30,18 @@ class Wallet {
         return signature
     }
 
-    exportPrivateKey(password) {
-        const encryptedPrivateKey = pki.encryptRsaPrivateKey(this.privateKey, password)
+    exportPrivateKey(password = '') {
+        const passwordStr = password + ''
+        const encryptedPrivateKey = pki.encryptRsaPrivateKey(this.privateKey, passwordStr)
         savePrivateKeyToPemFile(encryptedPrivateKey)
     }
 }
 
-const create = async (password) => {
+const create = async () => {
     try {
         console.log("Generating PublicKey / PrivateKey.....")
 
-        const keypair = await generateRsaKeypair(password)
+        const keypair = await generateRsaKeypair()
         const wallet = new Wallet(keypair.privateKey, keypair.publicKey)
         
         return Promise.resolve(wallet)
