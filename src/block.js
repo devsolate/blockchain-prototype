@@ -23,7 +23,7 @@ class Block {
         return {
             timestamp: this.timestamp,
             transactions: this.transactions.map((item) => {
-                return item.toJSON()
+                return item
             }),
             hash: this.hash,
             prevBlockHash: this.prevBlockHash

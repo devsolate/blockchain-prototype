@@ -36,7 +36,7 @@ class Transaction {
             vin: this.vin,
             vout: this.vout
         })
-        
+
         this.id = Hash.sha256(trxnData)
     }
 
@@ -49,28 +49,28 @@ class Transaction {
     }
 }
 
-const create =  async (blockchain, from, to, amount) => {
+const create = async (blockchain, from, to, amount) => {
     try {
         const unused = await findUnusedTransactions(blockchain, from, amount)
         const sum = unused.sum
 
-        if(sum >= amount) {
+        if (sum >= amount) {
             const trxn = new Transaction()
-            
-            for(let key in unused.trxns) {
+
+            for (let key in unused.trxns) {
                 const unusedTx = unused.trxns[key]
                 trxn.addVin(key, unusedTx.idx, from)
             }
 
-            trxn.addVout(from, sum - amount)    // Sender
-            trxn.addVout(to, amount)            // Receiver
+            trxn.addVout(from, sum - amount) // Sender
+            trxn.addVout(to, amount) // Receiver
             trxn.setID()
-            
+
             return Promise.resolve(trxn)
         } else {
             return Promise.reject("Insufficient amount")
         }
-    } catch(error) {
+    } catch (error) {
         return Promise.reject(error)
     }
 }
@@ -82,7 +82,7 @@ const findUnusedTransactions = async (bc, address, amount = -1) => {
 }
 
 const filterUnusedTransactions = (iterator, address, amount = -1) => {
-    return new Promise(async(resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         let sum = 0
         let usedTrxns = {}
         let unusedTrxns = {}
@@ -98,7 +98,7 @@ const filterUnusedTransactions = (iterator, address, amount = -1) => {
                     trxn.vin.map((vinTrxn) => {
 
                         // Only Target Address Filter
-                        if(address == vinTrxn.signature) {
+                        if (address == vinTrxn.signature) {
                             usedTrxns[vinTrxn.id] = {
                                 id: vinTrxn.id,
                                 voutIdx: vinTrxn.vout
@@ -107,8 +107,8 @@ const filterUnusedTransactions = (iterator, address, amount = -1) => {
                     })
 
                     trxn.vout.map((vout, voutIdx) => {
-                        if(!usedTrxns[trxn.id]) {
-                            if(address == vout.address) {
+                        if (!usedTrxns[trxn.id]) {
+                            if (address == vout.address) {
                                 unusedTrxns[trxn.id] = {
                                     idx: voutIdx,
                                     value: vout.value
@@ -143,5 +143,6 @@ const coinbase = (to, amount) => {
 module.exports = {
     create,
     coinbase,
-    findUnusedTransactions
+    findUnusedTransactions,
+    instance: Transaction
 }

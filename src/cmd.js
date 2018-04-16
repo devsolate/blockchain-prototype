@@ -1,23 +1,29 @@
 'use strict'
 
 const vorpal = require('vorpal')()
-const Blockchain = require('./blockchain')
 
-const Command = () => {
+const Command = (bc) => {
 
     vorpal
         .command('init', 'Initialize blockchain')
         .option('-a, --address <address>', 'Wallet Address')
         .action(async (args, callback) => {
             const { address } = args.options
-            await blockchainInitCmd(address)
+            await blockchainInitCmd(bc, address)
             callback()
         })
     
     vorpal
         .command('list', 'List all block in blockchain db')
         .action(async (args, callback) => {
-            await blockchainListCmd()
+            await blockchainListCmd(bc)
+            callback()
+        })
+
+    vorpal
+        .command('mine', 'Mine new block in blockchain')
+        .action(async (args, callback) => {
+            await blockchainMineCmd(bc)
             callback()
         })
     
@@ -28,7 +34,7 @@ const Command = () => {
         .option('-a, --amount <amount>', 'Amount')
         .action(async (args, callback) => {
             const { from, to, amount } = args.options
-            await blockchainSentCmd(from, to, amount)
+            await blockchainSentCmd(bc, from, to, amount)
             callback()
         })
 
@@ -37,18 +43,20 @@ const Command = () => {
         .option('-a, --address <address>', 'Wallet Address')
         .action(async (args, callback) => {
             const { address } = args.options
-            await blockchainFindBalanceCmd(address)
+            await blockchainFindBalanceCmd(bc, address)
             callback()
         })
 
     vorpal
         .delimiter('blockchain$')
         .show()
+
+    return vorpal
 }
 
-const blockchainInitCmd = async (to) => {
+const blockchainInitCmd = async (bc, to) => {
     try {
-        const block = await Blockchain.init(to)
+        const block = await bc.init(to)
 
         console.log("Genesis Block Created")
         console.log("Transactions: ", block.transactions)
@@ -62,11 +70,10 @@ const blockchainInitCmd = async (to) => {
     }
 }
 
-const blockchainListCmd = async () => {
+const blockchainListCmd = async (bc) => {
     try {
         console.log("List All Blocks")
-    
-        const bc = await Blockchain.get()
+
         const iterator = bc.getIterator()
 
         while (true) {
@@ -87,11 +94,20 @@ const blockchainListCmd = async () => {
     }
 }
 
-const blockchainSentCmd = async (from, to, amount = '0') => {
+const blockchainSentCmd = async (bc, from, to, amount = '0') => {
     try {
         const amountInt = parseInt(amount)
-        const bc = await Blockchain.get()
         const trxn = await bc.createTrxn(from, to, amountInt)
+        
+        return Promise.resolve()
+    } catch(error) {
+        console.error(error)
+        return Promise.reject(error)
+    }
+}
+
+const blockchainMineCmd = async (bc) => {
+    try {
         const block = await bc.mine()
 
         console.log("Block Created")
@@ -107,9 +123,8 @@ const blockchainSentCmd = async (from, to, amount = '0') => {
 }
 
 
-const blockchainFindBalanceCmd = async (wallet) => {
+const blockchainFindBalanceCmd = async (bc, wallet) => {
     try {
-        const bc = await Blockchain.get()
         const balance = await bc.findBalance(wallet)
         console.log(`${wallet} has balance:`, balance)
 
