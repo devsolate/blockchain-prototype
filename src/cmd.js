@@ -87,6 +87,23 @@ const Command = (bc) => {
         .show()
 }
 
+
+const blockchainInitCmd = async (bc, to) => {
+    try {
+        const block = await bc.init(to)
+
+        console.log("Genesis Block Created")
+        console.log("Transactions: ", block.transactions)
+        console.log("Hash: ", block.hash)
+        console.log("PrevBlockHash: ", block.prevBlockHash)
+
+        return Promise.resolve()
+    } catch(error) {
+        console.error(error)
+        return Promise.reject(error)
+    }
+}
+
 const blockchainListCmd = async (bc) => {
     try {
         console.log("List All Blocks")
