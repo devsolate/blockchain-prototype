@@ -33,7 +33,7 @@ const start = async () => {
         // Request Sync from Other Node
         if(data.nodeId != currentNodeId) {
             const block = await bc.findNext(data.latestHash)
-            console.log(`Request block ${data.latestHash}`, block)
+            // console.log(`Request block ${data.latestHash}`, block)
 
             if(block) {
                 node.publish(channel.SYNC_BLOCK, JSON.stringify({
