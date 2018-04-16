@@ -3,3 +3,4 @@ node_modules
 blockchain.db
 latestHash.db
 temp
+*.db
