@@ -92,7 +92,7 @@ const Command = (bc, p2pNode) => {
     return vorpal
 }
 
-const blockchainInitCmd = async (to) => {
+const blockchainInitCmd = async (bc, to) => {
     try {
         const block = await Blockchain.init(to)
 
