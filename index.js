@@ -5,7 +5,9 @@ const Command = require('./src/cmd')
 
 const start = async () => {
     try {
-        const bc = await Blockchain.get()
+        const bc = new Blockchain
+        await bc.connect()
+        
         Command(bc)
     } catch(error) {
         console.log(error)

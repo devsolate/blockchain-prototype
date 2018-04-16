@@ -12,8 +12,17 @@ class Blockchain {
 
         this.db = {}
         this.latestHash = ''
+    }
 
-        this.connectDB()
+    async connect() {
+        try {
+            this.db = this.connectDB()
+            this.latestHash = await this.getLatestHash()
+            
+            return Promise.resolve()
+        } catch(error) {
+            return Promise.reject(error)
+        }
     }
 
     connectDB() {
@@ -30,7 +39,7 @@ class Blockchain {
             filename: transactionsFilePath,
             autoload: true
         })
-        this.db = db
+        return db
     }
 
     getLatestHash() {
@@ -241,16 +250,4 @@ class BlockchainIterator {
     }
 }
 
-const get = async () => {
-    try {
-        const blockchain = new Blockchain()
-        blockchain.latestHash = await blockchain.getLatestHash()
-        return Promise.resolve(blockchain)
-    } catch (error) {
-        return Promise.reject(error)
-    }
-}
-
-module.exports = {
-    get
-}
+module.exports = Blockchain
