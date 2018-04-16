@@ -6,7 +6,8 @@ const Wallet = require('./wallet')
 const Hash = require('./utils/hash')
 const Verify = require('./utils/verify')
 
-const Command = (bc, p2pNode) => {
+const Command = (bc) => {
+
     // Blockchain
     vorpal
         .command('init', 'Initialize blockchain')
@@ -24,6 +25,7 @@ const Command = (bc, p2pNode) => {
             callback()
         })
     
+    
     vorpal
         .command('sent', 'Sent coin to other address')
         .option('-k, --key <key>', 'Private Key Path')
@@ -32,17 +34,14 @@ const Command = (bc, p2pNode) => {
         .option('-a, --amount <amount>', 'Amount')
         .action(async (args, callback) => {
             const { key, password, to, amount } = args.options
-            await blockchainSentCmd(bc, key, password, to, amount, p2pNode)
+            await blockchainSentCmd(bc, key, password, to, amount)
             callback()
         })
-    
 
     vorpal
-        .command('mine', 'Mine a new block')
+        .command('mine', 'Mine new block in blockchain')
         .action(async (args, callback) => {
-            const block = await blockchainMineBlockCmd(bc)
-
-            p2pNode.publish('CREATED_BLOCK', JSON.stringify(block))
+            await blockchainMineCmd(bc)
             callback()
         })
 
@@ -88,21 +87,21 @@ const Command = (bc, p2pNode) => {
     vorpal
         .delimiter('blockchain$')
         .show()
-
-    return vorpal
 }
+
 
 const blockchainInitCmd = async (bc, to) => {
     try {
-        const block = await Blockchain.init(to)
+        const block = await bc.init(to)
 
         console.log("Genesis Block Created")
         console.log("Transactions: ", block.transactions)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
+        console.log("Nonce: ", block.nonce)
 
         return Promise.resolve()
-    } catch (error) {
+    } catch(error) {
         console.error(error)
         return Promise.reject(error)
     }
@@ -111,7 +110,7 @@ const blockchainInitCmd = async (bc, to) => {
 const blockchainListCmd = async (bc) => {
     try {
         console.log("List All Blocks")
-
+    
         const iterator = bc.getIterator()
 
         while (true) {
@@ -121,51 +120,49 @@ const blockchainListCmd = async (bc) => {
                 console.log("Transactions: ", next.transactions)
                 console.log("Hash: ", next.hash)
                 console.log("PrevBlockHash: ", next.prevBlockHash)
+                console.log("Nonce: ", next.nonce)
             } else {
                 break;
             }
         }
-        
+
         return Promise.resolve()
-    } catch (error) {
+    } catch(error) {
         console.error(error)
         return Promise.reject(error)
     }
 }
 
-const blockchainMineBlockCmd = async (bc, p2pNode) => {
-    try {
-        console.log("Mining Block")
-        const block = await bc.mine()
-
-        console.log("Block Created")
-        console.log("Transactions: ", block.transactions)
-        console.log("Hash: ", block.hash)
-        console.log("PrevBlockHash: ", block.prevBlockHash)
-        
-        return Promise.resolve(block)
-    } catch (error) {
-        console.error(error)
-        return Promise.reject(error)
-    }
-}
-
-const blockchainSentCmd = async (bc, key, password, to, amount = '0', p2pNode) => {
+const blockchainSentCmd = async (bc, key, password, to, amount = '0') => {
     try {
         const amountInt = parseInt(amount)
         if (Verify.address(to)) {
             const wallet = await Wallet.load(key, password)
             const trxn = await bc.createTrxn(wallet, to, amountInt)
 
-            p2pNode.publish('CREATED_TRANSACTION', JSON.stringify(trxn))
-
-            console.log("Transactions Created")
+            console.log("Transaction Created")
         } else {
             console.log("Wallet address is invalid")
         }
 
-        return Promise.resolve()
     } catch (error) {
+        console.error(error)
+    }
+}
+
+
+const blockchainMineCmd = async (bc) => {
+    try {
+        const block = await bc.mine()
+
+        console.log("Block Created")
+        console.log("Transactions: ", block.transactions)
+        console.log("Hash: ", block.hash)
+        console.log("PrevBlockHash: ", block.prevBlockHash)
+        console.log("Nonce: ", block.nonce)
+
+        return Promise.resolve()
+    } catch(error) {
         console.error(error)
         return Promise.reject(error)
     }
@@ -174,15 +171,11 @@ const blockchainSentCmd = async (bc, key, password, to, amount = '0', p2pNode) =
 
 const blockchainFindBalanceCmd = async (bc, wallet) => {
     try {
-        if (Verify.address(wallet)) {
-            const balance = await bc.findBalance(wallet)
-            console.log(`${wallet} has balance:`, balance)
-        } else {
-            console.log("Wallet address is invalid")
-        }
+        const balance = await bc.findBalance(wallet)
+        console.log(`${wallet} has balance:`, balance)
 
         return Promise.resolve()
-    } catch (error) {
+    } catch(error) {
         console.error(error)
         return Promise.reject(error)
     }
@@ -195,9 +188,9 @@ const walletCreateCmd = async (bc, password) => {
 
         console.log("Wallet Created")
         console.log("Address:", wallet.address)
-
+        
         return Promise.resolve()
-    } catch (error) {
+    } catch(error) {
         console.error(error)
         return Promise.reject(error)
     }
@@ -209,9 +202,9 @@ const walletAddressCmd = async (bc, file, password) => {
 
         console.log("Wallet is loaded")
         console.log("Address:", wallet.address)
-
+        
         return Promise.resolve()
-    } catch (error) {
+    } catch(error) {
         console.error(error)
         return Promise.reject(error)
     }
@@ -224,7 +217,7 @@ const walletVerifyAddressCmd = async (bc, address) => {
         console.log("Address Verify :", verified)
 
         return Promise.resolve()
-    } catch (error) {
+    } catch(error) {
         console.error(error)
         return Promise.reject(error)
     }

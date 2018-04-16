@@ -15,8 +15,17 @@ class Blockchain {
 
         this.db = {}
         this.latestHash = ''
+    }
 
-        this.connectDB()
+    async connect() {
+        try {
+            this.db = this.connectDB()
+            this.latestHash = await this.getLatestHash()
+            
+            return Promise.resolve()
+        } catch(error) {
+            return Promise.reject(error)
+        }
     }
 
     connectDB() {
@@ -33,8 +42,9 @@ class Blockchain {
             filename: transactionsFilePath,
             autoload: true
         })
-        this.db = db
+        return db
     }
+
 
     getLatestHash() {
         return new Promise((resolve, reject) => {
@@ -56,6 +66,7 @@ class Blockchain {
         return new BlockchainIterator(this, this.latestHash)
     }
 
+    
     async mine() {
         const trxns = await this.getTransactions()
         const transactions = trxns.map((item) => {
@@ -239,6 +250,33 @@ class Blockchain {
         const unused = await Transaction.findUnusedTransactions(this, address)
         return Promise.resolve(unused.sum)
     }
+
+    async init (address) {
+        try {
+            const isEmpty = await this.isEmpty()
+            if (isEmpty) {
+
+                // Create Genesis Block and Target Address an Initial Coin
+                const block = await Block.createGenesisBlock(address)
+                const pow = ProofOfWork.create(block)
+                const mine = await pow.run()
+        
+                block.hash = mine.hash
+                block.nonce = mine.nonce
+
+                // Save to DB
+                await this.saveBlock(block.toJSON())
+                await this.saveLatestHash(block.hash)
+                this.latestHash = block.hash
+
+                return Promise.resolve(block)
+            } else {
+                return Promise.reject("Blockchain is already initialized")
+            }
+        } catch (err) {
+            return Promise.reject(err)
+        }
+    }
 }
 
 class BlockchainIterator {
@@ -263,44 +301,4 @@ class BlockchainIterator {
     }
 }
 
-const init = async (address) => {
-    try {
-        const blockchain = new Blockchain()
-        const isEmpty = await blockchain.isEmpty()
-        if (isEmpty) {
-
-            // Create Genesis Block and Target Address an Initial Coin
-            const block = await Block.createGenesisBlock(address)
-            const pow = ProofOfWork.create(block)
-            const mine = await pow.run()
-
-            block.hash = mine.hash
-            block.nonce = mine.nonce
-
-            // Save to DB
-            await blockchain.saveBlock(block.toJSON())
-            await blockchain.saveLatestHash(block.hash)
-
-            return Promise.resolve(block)
-        } else {
-            return Promise.reject("Blockchain is already initialized")
-        }
-    } catch (err) {
-        return Promise.reject(err)
-    }
-}
-
-const get = async () => {
-    try {
-        const blockchain = new Blockchain()
-        blockchain.latestHash = await blockchain.getLatestHash()
-        return Promise.resolve(blockchain)
-    } catch (error) {
-        return Promise.reject(error)
-    }
-}
-
-module.exports = {
-    init,
-    get
-}
+module.exports = Blockchain

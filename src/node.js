@@ -17,7 +17,9 @@ const channel = {
 }
 
 const start = async () => {
-    const bc = await Blockchain.get()
+    const bc = new Blockchain()
+    await bc.connect()
+
     const node = new P2PNode()
     await node.start()
     
