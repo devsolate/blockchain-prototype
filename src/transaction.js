@@ -173,5 +173,6 @@ const coinbase = (to, amount) => {
 module.exports = {
     create,
     coinbase,
-    findUnusedTransactions
+    findUnusedTransactions,
+    instance: Transaction
 }

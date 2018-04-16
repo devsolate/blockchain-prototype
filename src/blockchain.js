@@ -2,9 +2,9 @@
 
 const Block = require('./Block')
 const Transaction = require('./transaction')
-const Wallet = require('./wallet')
 const blockchainFilePath = 'blockchain.db'
 const latestHashFilePath = 'latestHash.db'
+const transactionsFilePath = './transaction.db'
 const Datastore = require('nedb');
 
 class Blockchain {
@@ -12,9 +12,17 @@ class Blockchain {
 
         this.db = {}
         this.latestHash = ''
-        this.tempTransactions = []
+    }
 
-        this.connectDB()
+    async connect() {
+        try {
+            this.db = this.connectDB()
+            this.latestHash = await this.getLatestHash()
+            
+            return Promise.resolve()
+        } catch(error) {
+            return Promise.reject(error)
+        }
     }
 
     connectDB() {
@@ -27,7 +35,11 @@ class Blockchain {
             filename: latestHashFilePath,
             autoload: true
         })
-        this.db = db
+        db.transactions = new Datastore({
+            filename: transactionsFilePath,
+            autoload: true
+        })
+        return db
     }
 
     getLatestHash() {
@@ -37,7 +49,11 @@ class Blockchain {
                     return reject(err)
                 }
 
-                return resolve(latest.latestHash)
+                if(latest) {
+                    return resolve(latest.latestHash)
+                } else {
+                    return resolve("")
+                }
             })
         })
     }
@@ -47,15 +63,18 @@ class Blockchain {
     }
 
     async mine() {
-        const data = this.tempTransactions
-        const block = await Block.create(data, this.latestHash)
+        const trxns = await this.getTransactions()
+        const transactions = trxns.map((item) => {
+            return new Transaction.instance(item.id, item.vin, item.vout)
+        })
+        const block = await Block.create(transactions, this.latestHash)
         block.setHash()
 
         try {
             await this.saveBlock(block.toJSON())
             await this.saveLatestHash(block.hash)
             this.latestHash = block.hash
-            this.tempTransactions = []
+            await this.clearTransactions()
 
             return Promise.resolve(block)
         } catch (error) {
@@ -133,22 +152,79 @@ class Blockchain {
         })
     }
 
-    async createTrxn(wallet, to, amount = 0) {
+    async createTrxn(from, to, amount = 0) {
         try {
-            const trxn = await Transaction.create(this, wallet, to, amount)
-            this.tempTransactions = [
-                ...this.tempTransactions,
-                trxn
-            ]
-            return Promise.resolve(this.tempTransactions)
+            const trxn = await Transaction.create(this, from, to, amount)
+            await this.saveTransaction(trxn)
+            return Promise.resolve(trxn)
         } catch(error) {
             return Promise.reject(error)
         }
     }
 
+    async saveTransaction(trxn) {
+        return new Promise((resolve, reject) => {
+            this.db.transactions.insert(trxn, (err, newBlock) => {
+                if (!err) {
+                    resolve()
+                } else {
+                    reject(err)
+                }
+            })
+        })
+    }
+
+    async getTransactions() {
+        return new Promise((resolve, reject) => {
+            this.db.transactions.find({}, (err, transactions) => {
+                if(err) {
+                    return reject(err)
+                }
+
+                return resolve(transactions)
+            })
+        })
+    }
+
+    async clearTransactions() {
+        return new Promise((resolve, reject) => {
+            this.db.transactions.remove({}, { multi: true }, (err, transactions) => {
+                if(err) {
+                    return reject(err)
+                }
+
+                return resolve(transactions)
+            })
+        })
+    }
+
     async findBalance(address) {
         const unused = await Transaction.findUnusedTransactions(this, address)
         return Promise.resolve(unused.sum)
+    }
+
+
+    async init (address) {
+        try {
+            const isEmpty = await this.isEmpty()
+            if (isEmpty) {
+
+                // Create Genesis Block and Target Address an Initial Coin
+                const block = await Block.createGenesisBlock(address)
+                block.setHash()
+
+                // Save to DB
+                await this.saveBlock(block.toJSON())
+                await this.saveLatestHash(block.hash)
+                this.latestHash = block.hash
+
+                return Promise.resolve(block)
+            } else {
+                return Promise.reject("Blockchain is already initialized")
+            }
+        } catch (err) {
+            return Promise.reject(err)
+        }
     }
 }
 
@@ -174,45 +250,4 @@ class BlockchainIterator {
     }
 }
 
-const init = async (address) => {
-    try {
-        const blockchain = new Blockchain()
-        const isEmpty = await blockchain.isEmpty()
-        if (isEmpty) {
-
-            // Create Genesis Block and Target Address an Initial Coin
-            const block = await Block.createGenesisBlock(address)
-            block.setHash()
-
-            // Save to DB
-            await blockchain.saveBlock(block.toJSON())
-            await blockchain.saveLatestHash(block.hash)
-
-            return Promise.resolve(block)
-        } else {
-            return Promise.reject("Blockchain is already initialized")
-        }
-    } catch (err) {
-        return Promise.reject(err)
-    }
-}
-
-const get = async () => {
-    try {
-        const blockchain = new Blockchain()
-        const isEmpty = await blockchain.isEmpty()
-        if (isEmpty) {
-            return Promise.reject("Blockchain is not initialized")
-        }
-        // Get blockchain latest hash from DB
-        blockchain.latestHash = await blockchain.getLatestHash()
-        return Promise.resolve(blockchain)
-    } catch (error) {
-        return Promise.reject(error)
-    }
-}
-
-module.exports = {
-    init,
-    get
-}
+module.exports = Blockchain

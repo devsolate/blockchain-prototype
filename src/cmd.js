@@ -6,23 +6,25 @@ const Wallet = require('./wallet')
 const Hash = require('./utils/hash')
 const Verify = require('./utils/verify')
 
-const Command = () => {
+const Command = (bc) => {
+
     // Blockchain
     vorpal
         .command('init', 'Initialize blockchain')
         .option('-a, --address <address>', 'Wallet Address')
         .action(async (args, callback) => {
             const { address } = args.options
-            await blockchainInitCmd(address)
+            await blockchainInitCmd(bc, address)
             callback()
         })
     
     vorpal
         .command('list', 'List all block in blockchain db')
         .action(async (args, callback) => {
-            await blockchainListCmd()
+            await blockchainListCmd(bc)
             callback()
         })
+    
     
     vorpal
         .command('sent', 'Sent coin to other address')
@@ -32,7 +34,14 @@ const Command = () => {
         .option('-a, --amount <amount>', 'Amount')
         .action(async (args, callback) => {
             const { key, password, to, amount } = args.options
-            await blockchainSentCmd(key, password, to, amount)
+            await blockchainSentCmd(bc, key, password, to, amount)
+            callback()
+        })
+
+    vorpal
+        .command('mine', 'Mine new block in blockchain')
+        .action(async (args, callback) => {
+            await blockchainMineCmd(bc)
             callback()
         })
 
@@ -41,7 +50,7 @@ const Command = () => {
         .option('-a, --address <address>', 'Wallet Address')
         .action(async (args, callback) => {
             const { address } = args.options
-            await blockchainFindBalanceCmd(address)
+            await blockchainFindBalanceCmd(bc, address)
             callback()
         })
 
@@ -51,7 +60,7 @@ const Command = () => {
         .option('-p, --password <password>', 'Private Key Password')
         .action(async (args, callback) => {
             const { password } = args.options
-            await walletCreateCmd(password)
+            await walletCreateCmd(bc, password)
             callback()
         })
     
@@ -62,7 +71,7 @@ const Command = () => {
         .option('-p, --password <password>', 'Private Key Password')
         .action(async (args, callback) => {
             const { key, password } = args.options
-            await walletAddressCmd(key, password)
+            await walletAddressCmd(bc, key, password)
             callback()
         })
 
@@ -71,7 +80,7 @@ const Command = () => {
         .option('-a, --address <address>', 'Wallet address')
         .action(async (args, callback) => {
             const { address } = args.options
-            await walletVerifyAddressCmd(address)
+            await walletVerifyAddressCmd(bc, address)
             callback()
         })
     
@@ -80,67 +89,32 @@ const Command = () => {
         .show()
 }
 
-const blockchainCmd = (subcmd, opts) => {
-    switch (subcmd) {
-        case 'init':
-            blockchainInitCmd(opts.to)
-            return;
-        case 'list':
-            blockchainListCmd()
-            return;
-        case 'sent':
-            blockchainSentCmd(opts.key, opts.password, opts.to, opts.amount)
-            return;
-        case 'balance':
-            blockchainFindBalanceCmd(opts.wallet)
-            return;
-        default:
-            return;
-    }
-}
 
-const walletCmd = (subcmd, opts) => {
-    switch (subcmd) {
-        case 'create':
-            walletCreateCmd(opts.password)
-            return;
-        case 'address':
-            walletAddressCmd(opts.key, opts.password)
-            return;
-        case 'sign':
-            walletSignCmd(opts.key, opts.password)
-            return;
-        case 'verify':
-            walletVerifyAddressCmd(opts.from)
-            return;
-        default:
-            return;
-    }
-}
-
-const blockchainInitCmd = async (to) => {
+const blockchainInitCmd = async (bc, to) => {
     try {
-        const block = await Blockchain.init(to)
+        const block = await bc.init(to)
 
         console.log("Genesis Block Created")
         console.log("Transactions: ", block.transactions)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
-    } catch (error) {
+
+        return Promise.resolve()
+    } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
-const blockchainListCmd = async () => {
+const blockchainListCmd = async (bc) => {
     try {
         console.log("List All Blocks")
-
-        const bc = await Blockchain.get()
+    
         const iterator = bc.getIterator()
 
         while (true) {
             const next = await iterator.next()
-            if (next) {
+            if(next) {
                 console.log("")
                 console.log("Transactions: ", next.transactions)
                 console.log("Hash: ", next.hash)
@@ -149,24 +123,22 @@ const blockchainListCmd = async () => {
                 break;
             }
         }
-    } catch (error) {
+
+        return Promise.resolve()
+    } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
-const blockchainSentCmd = async (key, password, to, amount = '0') => {
+const blockchainSentCmd = async (bc, key, password, to, amount = '0') => {
     try {
         const amountInt = parseInt(amount)
         if (Verify.address(to)) {
-            const bc = await Blockchain.get()
             const wallet = await Wallet.load(key, password)
             const trxn = await bc.createTrxn(wallet, to, amountInt)
-            const block = await bc.mine()
 
-            console.log("Block Created")
-            console.log("Transactions: ", block.transactions)
-            console.log("Hash: ", block.hash)
-            console.log("PrevBlockHash: ", block.prevBlockHash)
+            console.log("Transaction Created")
         } else {
             console.log("Wallet address is invalid")
         }
@@ -177,52 +149,74 @@ const blockchainSentCmd = async (key, password, to, amount = '0') => {
 }
 
 
-const blockchainFindBalanceCmd = async (wallet) => {
+const blockchainMineCmd = async (bc) => {
     try {
-        const bc = await Blockchain.get()
-        if (Verify.address(wallet)) {
-            const balance = await bc.findBalance(wallet)
-            console.log(`${wallet} has balance:`, balance)
-        } else {
-            console.log("Wallet address is invalid")
-        }
+        const block = await bc.mine()
 
-    } catch (error) {
+        console.log("Block Created")
+        console.log("Transactions: ", block.transactions)
+        console.log("Hash: ", block.hash)
+        console.log("PrevBlockHash: ", block.prevBlockHash)
+
+        return Promise.resolve()
+    } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
-const walletCreateCmd = async (password) => {
+
+const blockchainFindBalanceCmd = async (bc, wallet) => {
+    try {
+        const balance = await bc.findBalance(wallet)
+        console.log(`${wallet} has balance:`, balance)
+
+        return Promise.resolve()
+    } catch(error) {
+        console.error(error)
+        return Promise.reject(error)
+    }
+}
+
+const walletCreateCmd = async (bc, password) => {
     try {
         const wallet = await Wallet.create()
         wallet.exportPrivateKey(password)
 
         console.log("Wallet Created")
         console.log("Address:", wallet.address)
-    } catch (error) {
-        console.log(error)
+        
+        return Promise.resolve()
+    } catch(error) {
+        console.error(error)
+        return Promise.reject(error)
     }
 }
 
-const walletAddressCmd = async (file, password) => {
+const walletAddressCmd = async (bc, file, password) => {
     try {
         const wallet = await Wallet.load(file, password)
-
+        
         console.log("Wallet is loaded")
         console.log("Address:", wallet.address)
-    } catch (error) {
+        
+        return Promise.resolve()
+    } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
 
-const walletVerifyAddressCmd = async (address) => {
+const walletVerifyAddressCmd = async (bc, address) => {
     try {
         const verified = Verify.address(address)
         console.log("Address Verify :", verified)
 
-    } catch (error) {
+        return Promise.resolve()
+    } catch(error) {
         console.error(error)
+        return Promise.reject(error)
     }
 }
 
