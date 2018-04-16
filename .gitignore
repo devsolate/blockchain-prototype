@@ -1,4 +1,6 @@
 package-lock.json
 node_modules
-*.db
+blockchain.db
+latestHash.db
 temp
+*.db

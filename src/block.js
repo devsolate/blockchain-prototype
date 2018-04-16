@@ -41,10 +41,14 @@ const create = async (transactions, prevBlockHash) => {
     }
 }
 
-const createGenesisBlock = (targetAddress) => {
-    const trxn = Transaction.coinbase(targetAddress, genesisBlockCoin)
-    const block = create([trxn], '')
-    return block
+const createGenesisBlock = async (targetAddress) => {
+    try {
+        const trxn = Transaction.coinbase(targetAddress, genesisBlockCoin)
+        const block = await create([trxn], '')
+        return Promise.resolve(block)
+    } catch(error) {
+        return Promise.reject(error)
+    }
 }
 
 module.exports = {
