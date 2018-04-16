@@ -167,6 +167,10 @@ const filterUnusedTransactions = (iterator, pendingTrxns, address, amount = -1) 
                         }
                     })
                 })
+                
+                if(amount > -1 && sum >= amount) {
+                    break;
+                }
             } else {
                 break;
             }
