@@ -22,6 +22,8 @@ const start = async () => {
     await node.start()
     
     const cmd = Command(bc, node)
+    
+    console.log("Node Started: ", node.node.peerInfo.id.toB58String())
 
     // Subscribe data from other node
     node.subscribe(channel.SYNC_REQUEST, async (buffer) => {
