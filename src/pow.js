@@ -12,6 +12,8 @@ class ProofOfWork {
     }
 
     async run() {
+        console.time("mining time");
+
         const data = this.block.timestamp + JSON.stringify(this.block.transactions) + this.block.prevBlockHash + this.block.nonce
 
         let nonce = 0
@@ -27,6 +29,8 @@ class ProofOfWork {
             
             nonce++
         }
+
+        console.timeEnd("mining time");
 
         return Promise.resolve({
             hash: verifiedHash,

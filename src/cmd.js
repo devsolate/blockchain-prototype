@@ -98,6 +98,7 @@ const blockchainInitCmd = async (bc, to) => {
         console.log("Transactions: ", block.transactions)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
+        console.log("Nonce: ", block.nonce)
 
         return Promise.resolve()
     } catch(error) {
@@ -119,6 +120,7 @@ const blockchainListCmd = async (bc) => {
                 console.log("Transactions: ", next.transactions)
                 console.log("Hash: ", next.hash)
                 console.log("PrevBlockHash: ", next.prevBlockHash)
+                console.log("Nonce: ", next.nonce)
             } else {
                 break;
             }
@@ -157,6 +159,7 @@ const blockchainMineCmd = async (bc) => {
         console.log("Transactions: ", block.transactions)
         console.log("Hash: ", block.hash)
         console.log("PrevBlockHash: ", block.prevBlockHash)
+        console.log("Nonce: ", block.nonce)
 
         return Promise.resolve()
     } catch(error) {
