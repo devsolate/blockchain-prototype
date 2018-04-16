@@ -102,16 +102,34 @@ const create =  async (blockchain, wallet, to, amount) => {
 }
 
 const findUnusedTransactions = async (bc, address, amount = -1) => {
-    const iterator = bc.getIterator()
-    const result = filterUnusedTransactions(iterator, address, amount)
-    return Promise.resolve(result)
+    try {
+        const iterator = bc.getIterator()
+        const pendingTrxns = await bc.getTransactions()
+        const result = filterUnusedTransactions(iterator, pendingTrxns, address, amount)
+        return Promise.resolve(result)
+    } catch(error) {
+        return Promise.reject(error)
+    }
 }
 
-const filterUnusedTransactions = (iterator, address, amount = -1) => {
+const filterUnusedTransactions = (iterator, pendingTrxns, address, amount = -1) => {
     return new Promise(async(resolve, reject) => {
         let sum = 0
         let usedTrxns = {}
         let unusedTrxns = {}
+
+        // Add pending trxns to used
+        pendingTrxns.map((trxn) => {
+            trxn.vin.map((vinTrxn) => {
+                if (address == vinTrxn.signature) {
+                    usedTrxns[vinTrxn.id] = {
+                        id: vinTrxn.id,
+                        voutIdx: vinTrxn.vout
+                    }
+                }
+            })
+        })
+
 
         while (true) {
 
