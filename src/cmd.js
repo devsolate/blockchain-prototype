@@ -1,20 +1,19 @@
 'use strict'
 
 const vorpal = require('vorpal')()
-const Blockchain = require('./blockchain')
 
-const Command = () => {
+const Command = (bc) => {
     vorpal
         .command('init', 'Initialize blockchain')
         .action(async (args, callback) => {
-            await blockchainInitCmd()
+            await blockchainInitCmd(bc)
             callback()
         });
     
     vorpal
         .command('list', 'List all block in blockchain db')
         .action(async (args, callback) => {
-            await blockchainListCmd()
+            await blockchainListCmd(bc)
             callback()
         });
     
@@ -23,7 +22,7 @@ const Command = () => {
         .option('-d, --data <data>', 'Data')
         .action(async (args, callback) => {
             const data = args.options.data
-            await blockchainInsertCmd(data)
+            await blockchainInsertCmd(bc, data)
             callback()
         });
 
@@ -32,9 +31,9 @@ const Command = () => {
         .show()
 }
 
-const blockchainInitCmd = async () => {
+const blockchainInitCmd = async (bc) => {
     try {
-        const block = await Blockchain.init()
+        const block = await bc.init()
 
         console.log("Genesis Block Created")
         console.log("Data: ", block.data)
@@ -48,9 +47,8 @@ const blockchainInitCmd = async () => {
     }
 }
 
-const blockchainListCmd = async () => {
+const blockchainListCmd = async (bc) => {
     try {
-        const bc = await Blockchain.get()
         const iterator = bc.getIterator()
 
         while (true) {
@@ -71,9 +69,8 @@ const blockchainListCmd = async () => {
     }
 }
 
-const blockchainInsertCmd = async (data) => {
+const blockchainInsertCmd = async (bc, data) => {
     try {
-        const bc = await Blockchain.get()
         const block = await bc.mine(data)
 
         console.log("Block Created")
