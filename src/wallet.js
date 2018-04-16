@@ -83,11 +83,12 @@ const savePrivateKeyToPemFile = (privateKey) => {
     })
 }
 
-const load = async (filePath, password) => {
+const load = async (filePath, password = '') => {
     try {
         // Load and decrypt a private key file with password
+        const passwordStr = password + ''
         const privateKeyPem = await loadWalletFromFile(filePath)
-        const privateKey = pki.decryptRsaPrivateKey(privateKeyPem, password)
+        const privateKey = pki.decryptRsaPrivateKey(privateKeyPem, passwordStr)
         
         if(privateKey) {
             // Private Key Valid - Generate a public key from it
